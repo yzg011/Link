@@ -28,5 +28,11 @@
     "url": "https://www.xiaoten.com/",
     "avatar": "https://www.google.com/s2/favicons?domain=www.xiaoten.com&sz=128",
     "description": "Uui"
+  },
+  {
+    "name": "图像",
+    "url": "https://pic.z2m.store",
+    "avatar": "https://www.google.com/s2/favicons?domain=pic.z2m.store&sz=128",
+    "description": "博客"
   }
 ]
