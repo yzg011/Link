@@ -62,7 +62,7 @@ jobs:
           }
 
           async function main() {
-            const friends = JSON.parse(fs.readFileSync('friends.json', 'utf-8'));
+            const friends = JSON.parse(fs.readFileSync('././friends.json', 'utf-8'));
             const results = [];
 
             for (const f of friends) {
