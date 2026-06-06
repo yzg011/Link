@@ -346,20 +346,24 @@
   <div class="apply-box">
     <h2>申请友情链接</h2>
     <div class="form-item">
-      <label>站点名称 *</label>
-      <input type="text" id="siteName" placeholder="请输入你的网站名称">
+      <label>网站名称 *</label>
+      <input type="text" id="siteName" placeholder="例如：My Blog">
     </div>
     <div class="form-item">
-      <label>网站地址 *</label>
-      <input type="url" id="siteUrl" placeholder="https://xxx.com">
+      <label>网站链接 *</label>
+      <input type="url" id="siteUrl" placeholder="https://example.com">
+    </div>
+    <div class="form-item">
+      <label>友链页面 URL *</label>
+      <input type="url" id="friendUrl" placeholder="https://example.com/friends">
     </div>
     <div class="form-item">
       <label>头像/Logo地址 *</label>
       <input type="url" id="siteAvatar" placeholder="图片直链地址">
     </div>
     <div class="form-item">
-      <label>站点描述 *</label>
-      <textarea id="siteDesc" placeholder="简单描述你的网站"></textarea>
+      <label>网站描述</label>
+      <textarea id="siteDesc" placeholder="简短描述你的网站（一句话即可）"></textarea>
     </div>
     <div class="form-btn-group">
       <button class="cancel-btn" id="closeApply">取消</button>
@@ -430,33 +434,32 @@ mask.addEventListener('click', e => {
   if(e.target === mask) mask.style.display = 'none';
 });
 
-// ========== 表单提交 → 跳转 GitHub Issue 并自动填充数据 ==========
+// ========== 表单提交 → 跳转 GitHub Issue 并按模板格式填充数据 ==========
 document.getElementById('submitApply').addEventListener('click', () => {
   const name = document.getElementById('siteName').value.trim();
   const url = document.getElementById('siteUrl').value.trim();
+  const friendUrl = document.getElementById('friendUrl').value.trim();
   const avatar = document.getElementById('siteAvatar').value.trim();
   const desc = document.getElementById('siteDesc').value.trim();
 
-  // 前端表单校验
-  if(!name || !url || !avatar || !desc){
+  // 前端表单校验（匹配模板必填项）
+  if(!name || !url || !friendUrl || !avatar){
     showMsg('请填写完整必填信息');
     return;
   }
-  if(!/^https?:\/\//.test(url)){
-    showMsg('请输入有效的网站链接');
+  if(!/^https?:\/\//.test(url) || !/^https?:\/\//.test(friendUrl)){
+    showMsg('请输入有效的网站链接和友链页面链接');
     return;
   }
 
-  // 组装 Issue 标题和内容（Markdown 格式，便于阅读）
+  // 关键：按仓库模板的字段名来生成 Issue 正文
   const issueTitle = `友链申请：${name}`;
   const issueBody = `
-### 友链申请信息
-- 站点名称：${name}
-- 站点地址：${url}
-- 头像链接：${avatar}
-- 站点描述：${desc}
-
-请管理员审核，审核通过后添加至友链列表。
+- name: ${name}
+- url: ${url}
+- friend_url: ${friendUrl}
+- avatar: ${avatar}
+- description: ${desc}
   `.trim();
 
   // 拼接 URL 参数，自动填充 GitHub Issue 标题和正文
@@ -468,6 +471,7 @@ document.getElementById('submitApply').addEventListener('click', () => {
   // 清空表单、关闭弹窗
   document.getElementById('siteName').value = '';
   document.getElementById('siteUrl').value = '';
+  document.getElementById('friendUrl').value = '';
   document.getElementById('siteAvatar').value = '';
   document.getElementById('siteDesc').value = '';
   mask.style.display = 'none';
