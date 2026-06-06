@@ -186,30 +186,11 @@
       filter: invert(1);
     }
 
-    /* ========== 强化自助申请按钮 醒目样式 ========== */
+    /* 申请友链表单 毛玻璃弹窗 */
     .apply-btn {
       margin: 0 auto 30px;
       display: block;
-      padding: 12px 36px;
-      font-size: 16px;
-      font-weight: bold;
-      color: #fff;
-      background: var(--btn-active);
-      border: none;
-      border-radius: 8px;
-      box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);
-      cursor: pointer;
-      transition: all 0.25s ease;
     }
-    .apply-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 18px rgba(59, 130, 246, 0.45);
-    }
-    .apply-btn:active {
-      transform: translateY(0);
-    }
-
-    /* 申请友链表单 毛玻璃弹窗 */
     .mask {
       position: fixed;
       top: 0;
@@ -332,7 +313,7 @@
   </button>
 </div>
 
-<!-- 醒目版自助申请友链按钮 -->
+<!-- 申请友链按钮 -->
 <button class="apply-btn" id="openApply">自助申请友链</button>
 
 <!-- 友链列表 -->
@@ -520,6 +501,7 @@ fetch('./friends.json')
 .then(res => res.json())
 .then(list => {
   allLinkList = list;
+  renderPageData(currentPage);
   renderPageData(currentPage);
   renderPagination();
 })
