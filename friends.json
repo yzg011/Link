@@ -1,9 +1,14 @@
 [
-
   {
     "name": "个人主页",
     "url": "https://home.z2m.store",
     "avatar": "https://img.z2m.store/file/public/1778862620159_g.png",
     "description": "博客主页"
+  },
+  {
+    "name": "笔记📒",
+    "url": "https://bj.z2m.store",
+    "avatar": "https://bj.z2m.store/logo.png",
+    "description": "一个安防人的笔记"
   }
 ]
