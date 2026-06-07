@@ -1,20 +1,9 @@
 [
-  {
-    "name": "个人博客",
-    "url": "https://com.z2m.store",
-    "avatar": "https://www.google.com/s2/favicons?domain=com.z2m.store&sz=128",
-    "description": "读史可以明智,知古方能鉴今"
-  },
-  {
-    "name": "笔记",
-    "url": "https://bj.z2m.store",
-    "avatar": "https://www.google.com/s2/favicons?domain=bj.z2m.store&sz=128",
-    "description": "一个安防人的笔记"
-  },
+
   {
     "name": "个人主页",
     "url": "https://home.z2m.store",
-    "avatar": "https://img.131213.xyz/tfile/BQACAgUAAx0Eflp52gABASoGagROrYjKvhiuNs6FoVSVGXPVy",
+    "avatar": "https://img.z2m.store/file/public/1778862620159_g.png",
     "description": "博客主页"
   }
 ]
