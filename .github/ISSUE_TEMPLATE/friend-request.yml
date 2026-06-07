@@ -9,17 +9,17 @@ body:
         # 🤝 友链申请
 
         请填写以下信息，我们将在收到申请后尽快审核。
-        由于博主实在学业繁忙 action运行失败时可能不能及时手动添加 请见谅
+        由于博主工作繁忙 action运行失败时可能不能及时手动添加 请见谅
         ## 申请要求
         1. 在你的网站添加本站友链
         2. 内容符合法律法规
         3. 全球可联通
 
         ## 友链信息
-        - **名称**: UpXuu's blog
-        - **链接**: `https://upxuu.com`
-        - **头像**: `https://upxuu.com/images/20260214145619.jpg`
-        - **描述**: 逐光而上
+        - **名称**: Saimen Blog
+        - **链接**: `https://com.z2m.store`
+        - **头像**: `https://img.z2m.store/file/public/1778862620159_g.png`
+        - **描述**: 读史可以明智,知古方能鉴今。
 
   - type: input
     id: name
