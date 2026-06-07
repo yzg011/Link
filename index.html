@@ -355,10 +355,10 @@
     </div>
     <div class="form-item">
       <label>友链页面 URL *</label>
-      <input type="url" id="friendUrl" placeholder="https://example.com/friends">
+      <input type="url" id="friend_url" placeholder="https://example.com/friends">
     </div>
     <div class="form-item">
-      <label>头像/Logo地址 </label>
+      <label>头像/Logo地址 *</label>
       <input type="url" id="siteAvatar" placeholder="图片直链地址">
     </div>
     <div class="form-item">
@@ -438,16 +438,16 @@ mask.addEventListener('click', e => {
 document.getElementById('submitApply').addEventListener('click', () => {
   const name = document.getElementById('siteName').value.trim();
   const url = document.getElementById('siteUrl').value.trim();
-  const friendUrl = document.getElementById('friendUrl').value.trim();
+  const friend_url = document.getElementById('friend_url').value.trim();
   const avatar = document.getElementById('siteAvatar').value.trim();
   const desc = document.getElementById('siteDesc').value.trim();
 
   // 前端表单校验（匹配模板必填项）
-  if(!name || !url || !friendUrl || !avatar){
+  if(!name || !url || !friend_url || !avatar){
     showMsg('请填写完整必填信息');
     return;
   }
-  if(!/^https?:\/\//.test(url) || !/^https?:\/\//.test(friendUrl)){
+  if(!/^https?:\/\//.test(url) || !/^https?:\/\//.test(friend_url)){
     showMsg('请输入有效的网站链接和友链页面链接');
     return;
   }
@@ -455,11 +455,16 @@ document.getElementById('submitApply').addEventListener('click', () => {
   // 关键：按仓库模板的字段名来生成 Issue 正文
   const issueTitle = `友链申请：${name}`;
   const issueBody = `
-- name: ${name}
-- url: ${url}
-- friend_url: ${friendUrl}
-- avatar: ${avatar}
-- description: ${desc}
+### 网站名称
+    ${name}
+### 网站链接
+    ${url}
+### 友链页面 URL
+    ${friend_url}
+### 网站头像 URL
+    ${avatar}
+### 网站描述
+    ${desc}
   `.trim();
 
   // 拼接 URL 参数，自动填充 GitHub Issue 标题和正文
@@ -471,7 +476,7 @@ document.getElementById('submitApply').addEventListener('click', () => {
   // 清空表单、关闭弹窗
   document.getElementById('siteName').value = '';
   document.getElementById('siteUrl').value = '';
-  document.getElementById('friendUrl').value = '';
+  document.getElementById('friend_url').value = '';
   document.getElementById('siteAvatar').value = '';
   document.getElementById('siteDesc').value = '';
   mask.style.display = 'none';
