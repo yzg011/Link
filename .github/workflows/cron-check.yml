@@ -66,7 +66,7 @@ jobs:
             const results = [];
 
             for (const f of friends) {
-              const skipNames = ['UpXuu'];
+              const skipNames = ['Saimen'];
               if (skipNames.includes(f.name)) continue;
 
               const url = f.url.replace(/\/$/, '');
