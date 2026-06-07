@@ -129,12 +129,10 @@
       border-color: var(--border-color);
     }
 
-    /* ========== 核心：鼠标悬浮 = 选中状态 + 动态效果 ========== */
+    /* 鼠标悬浮 = 选中状态 + 动态效果 */
     .link-card:hover {
-      /* 选中边框、光晕阴影 */
       border-color: var(--card-selected-border);
       box-shadow: var(--card-selected-shadow);
-      /* 上浮动态效果 */
       transform: translateY(-4px);
     }
 
@@ -528,7 +526,7 @@ document.getElementById('submitApply').addEventListener('click', () => {
   showMsg('已跳转至 GitHub 提交申请');
 });
 
-// ========== 渲染列表与分页（移除默认 selected 类） ==========
+// ========== 渲染列表与分页 + 点击卡片跳转链接 ==========
 function renderPageData(page) {
   const start = (page - 1) * PAGE_SIZE;
   const end = start + PAGE_SIZE;
@@ -536,9 +534,9 @@ function renderPageData(page) {
 
   let htmlStr = '';
   pageData.forEach(item => {
-    // 移除 selected 类，默认无选中状态
+    // 给卡片绑定 data-url 存储链接地址
     htmlStr += `
-      <div class="link-card" data-id="${item.id || item.name}">
+      <div class="link-card" data-url="${item.url}">
         <img class="avatar" src="${item.avatar}" alt="${item.name}头像">
         <div class="info">
           <h3><a href="${item.url}" target="_blank">${item.name}</a></h3>
@@ -548,6 +546,16 @@ function renderPageData(page) {
     `;
   });
   container.innerHTML = htmlStr;
+
+  // 绑定点击事件：点击整个友链框跳转链接（新标签页打开）
+  document.querySelectorAll('.link-card').forEach(card => {
+    card.addEventListener('click', (e) => {
+      // 排除内部a标签的点击，避免重复跳转
+      if (e.target.tagName === 'A') return;
+      // 新标签页打开链接，如需当前页打开，替换为 window.location.href = card.dataset.url;
+      window.open(card.dataset.url, '_blank');
+    });
+  });
 }
 
 function renderPagination() {
