@@ -20,7 +20,7 @@
       --btn-active-text: #fff;
       --shadow: 0 2px 12px #00000010;
       --input-bg: #fff;
-      /* 新增选中状态变量 */
+      /* 选中状态变量（悬浮生效） */
       --card-selected-border: #3b82f6;
       --card-selected-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2), 0 8px 24px rgba(59, 130, 246, 0.15);
     }
@@ -105,7 +105,7 @@
       flex-wrap: wrap;
     }
 
-    /* 友链卡片 毛玻璃 */
+    /* 友链卡片 基础样式（默认无选中效果） */
     .link-card{
       background: rgba(255, 255, 255, 0.7);
       backdrop-filter: blur(10px);
@@ -118,34 +118,41 @@
       gap: 14px;
       align-items: center;
       transition: all 0.3s ease;
-      /* 默认选中状态 */
-      border-color: var(--card-selected-border);
-      box-shadow: var(--card-selected-shadow);
-      transform: translateY(-4px);
       cursor: pointer;
+      /* 默认状态：无高亮、无上移 */
+      border-color: var(--border-color);
+      transform: translateY(0);
     }
     html.dark .link-card {
       background: rgba(30, 30, 47, 0.7);
       border: 1px solid rgba(255, 255, 255, 0.08);
-      /* 深色模式默认选中边框 */
-      border-color: var(--card-selected-border);
+      border-color: var(--border-color);
     }
 
-    /* 选中状态强化效果（默认全部选中） */
-    .link-card.selected {
+    /* ========== 核心：鼠标悬浮 = 选中状态 + 动态效果 ========== */
+    .link-card:hover {
+      /* 选中边框、光晕阴影 */
       border-color: var(--card-selected-border);
       box-shadow: var(--card-selected-shadow);
+      /* 上浮动态效果 */
       transform: translateY(-4px);
     }
 
-    /* 交互效果：鼠标悬浮/点击增强 */
-    .link-card:hover {
-      transform: translateY(-6px);
-      box-shadow: 0 10px 28px rgba(59, 130, 246, 0.2);
-    }
+    /* 鼠标点击按压效果 */
     .link-card:active {
       transform: translateY(-2px);
       transition: all 0.1s ease;
+    }
+
+    /* 悬浮时头像放大 */
+    .link-card:hover .avatar {
+      border-color: var(--card-selected-border);
+      transform: scale(1.05);
+    }
+
+    /* 悬浮时标题变色 */
+    .link-card:hover .info h3 {
+      color: var(--btn-active);
     }
 
     .avatar{
@@ -156,19 +163,12 @@
       border: 2px solid var(--border-color);
       transition: all 0.3s ease;
     }
-    .link-card.selected .avatar {
-      border-color: var(--card-selected-border);
-      transform: scale(1.05);
-    }
 
     .info h3{
       font-size: 17px;
       color: var(--text-main);
       margin-bottom: 6px;
       transition: all 0.3s ease;
-    }
-    .link-card.selected .info h3 {
-      color: var(--btn-active);
     }
 
     .info p{
@@ -181,7 +181,7 @@
       color: var(--link-color);
       transition: all 0.2s ease;
     }
-    .link-card.selected .info a:hover {
+    .info a:hover {
       color: #2563eb;
       text-decoration: underline;
     }
@@ -231,7 +231,7 @@
       filter: invert(1);
     }
 
-    /* ========== 强化自助申请按钮 醒目样式 ========== */
+    /* 自助申请按钮 */
     .apply-btn {
       margin: 0 auto 30px;
       display: block;
@@ -254,7 +254,7 @@
       transform: translateY(0);
     }
 
-    /* 申请友链表单 毛玻璃弹窗 */
+    /* 申请友链弹窗 毛玻璃弹窗 */
     .mask {
       position: fixed;
       top: 0;
@@ -377,7 +377,7 @@
   </button>
 </div>
 
-<!-- 醒目版自助申请友链按钮 -->
+<!-- 自助申请友链按钮 -->
 <button class="apply-btn" id="openApply">自助申请友链</button>
 
 <!-- 友链列表 -->
@@ -528,7 +528,7 @@ document.getElementById('submitApply').addEventListener('click', () => {
   showMsg('已跳转至 GitHub 提交申请');
 });
 
-// ========== 渲染列表与分页 ==========
+// ========== 渲染列表与分页（移除默认 selected 类） ==========
 function renderPageData(page) {
   const start = (page - 1) * PAGE_SIZE;
   const end = start + PAGE_SIZE;
@@ -536,9 +536,9 @@ function renderPageData(page) {
 
   let htmlStr = '';
   pageData.forEach(item => {
-    // 每个卡片默认添加 selected 类
+    // 移除 selected 类，默认无选中状态
     htmlStr += `
-      <div class="link-card selected" data-id="${item.id || item.name}">
+      <div class="link-card" data-id="${item.id || item.name}">
         <img class="avatar" src="${item.avatar}" alt="${item.name}头像">
         <div class="info">
           <h3><a href="${item.url}" target="_blank">${item.name}</a></h3>
@@ -548,24 +548,6 @@ function renderPageData(page) {
     `;
   });
   container.innerHTML = htmlStr;
-
-  // 为每个卡片添加点击切换选中状态的功能（可选）
-  document.querySelectorAll('.link-card').forEach(card => {
-    card.addEventListener('click', (e) => {
-      // 避免点击链接时触发选中状态切换
-      if (e.target.tagName === 'A') return;
-      card.classList.toggle('selected');
-      
-      // 切换时添加额外的动态效果
-      card.animate([
-        { transform: 'translateY(-4px) scale(1.02)' },
-        { transform: card.classList.contains('selected') ? 'translateY(-4px)' : 'translateY(0)' }
-      ], {
-        duration: 300,
-        easing: 'ease-out'
-      });
-    });
-  });
 }
 
 function renderPagination() {
@@ -597,7 +579,7 @@ fetch('./friends.json')
   renderPagination();
 })
 .catch(err => {
-  container.innerHTML = '友链数据加载失败，请检查 links.json 文件路径';
+  container.innerHTML = '友链数据加载失败，请检查 friends.json 文件路径';
   console.error(err);
 })
 </script>
