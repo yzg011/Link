@@ -52,5 +52,11 @@
     "url": "https://seasir.top/",
     "avatar": "https://www.google.com/s2/favicons?domain=seasir.top&sz=128",
     "description": "人心中的成见是一座大山"
+  },
+  {
+    "name": "vlog",
+    "url": "https://vlog.z2m.store/",
+    "avatar": "https://img.z2m.store/file/public/1778862620159_g.png",
+    "description": "技术与生活"
   }
 ]
