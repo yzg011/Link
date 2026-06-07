@@ -22,5 +22,11 @@
     "url": "https://blog.z2m.store",
     "avatar": "https://blog.z2m.store/_astro/1.r-h2JhmR_1oDWug.webp",
     "description": "技术成长、生活随笔"
+  },
+  {
+    "name": "个人博客",
+    "url": "https://com.z2m.store",
+    "avatar": "https://com.z2m.store/img/butterfly-icon.png",
+    "description": "读史可以明智,知古方能鉴今"
   }
 ]
