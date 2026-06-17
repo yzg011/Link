@@ -1,3 +1,295 @@
-# Link
-每天自动巡检友链
-通过issue自动添加友链
+
+<style>
+/* 页面样式 */
+.memos-container{max-width:800px;margin:2rem auto;padding:0 1rem;}
+.state-tips{text-align:center;padding:2rem;color:var(--vp-c-text-2);}
+.memos-item{display:flex;gap:12px;background:var(--vp-c-bg-soft);border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0.08);}
+.avatar-wrap{flex-shrink:0;width:40px;height:40px;border-radius:50%;overflow:hidden;background:#eee;}
+/* 重点：头像图片强制清空占位背景、禁止懒加载样式 */
+.avatar-wrap img {
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  background: transparent !important;
+  background-image: none !important;
+  opacity: 1 !important;
+}
+.memos-content-wrap{flex:1;}
+.user-header{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.username{font-weight:600;font-size:14px;color:var(--vp-c-text-1);}
+.time{font-size:12px;color:var(--vp-c-text-2);}
+.memos-content{line-height:1.6;font-size:15px;margin-bottom:10px;word-break:break-word;color:var(--vp-c-text-1);}
+.img-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:10px;}
+.img-grid img{width:100%;height:auto;object-fit:contain;border-radius:8px;cursor:pointer;transition:transform 0.2s ease;background:#f5f5;}
+.img-grid img:hover{transform:scale(1.02);}
+
+/* 底部加载提示 */
+.load-tips {
+  text-align: center;
+  padding: 1.5rem;
+  color: var(--vp-c-text-2);
+  font-size: 14px;
+}
+
+/* 弹窗全局样式，最高优先级 */
+.img-preview {
+  position: fixed !important;
+  left: 0 !important;
+  top: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: rgba(0,0,0.85) !important;
+  z-index: 99999 !important;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+.img-preview.show {
+  display: flex !important;
+}
+.preview-img-wrapper {
+  width: 90%;
+  max-width: 800px;
+  text-align: center;
+}
+.preview-img-wrapper img {
+  max-width: 100%;
+  max-height: 92vh;
+  border-radius: 8px;
+  object-fit: contain;
+}
+</style>
+
+<div class="memos-container" id="memosList">
+  <div class="state-tips">加载中...</div>
+</div>
+<!-- 底部加载提示 -->
+<div class="load-tips" id="loadTips">加载中...</div>
+
+<!-- 弹窗DOM -->
+<div class="img-preview" id="imgPreview">
+  <div class="preview-img-wrapper">
+    <img id="previewImg" alt="大图预览">
+  </div>
+</div>
+
+<script>
+window.onload = function(){
+  // 分页配置（游标分页 pageSize + pageToken）
+  const API_BASE = "https://ss.z2m.store";
+  const PAGE_SIZE = 10;
+  let pageToken = "";
+  let hasMore = true;
+  let isLoading = false;
+
+  const IMG_DOMAIN = "https://ss.z2m.store";
+  const wrap = document.getElementById("memosList");
+  const loadTips = document.getElementById("loadTips");
+  const previewBox = document.getElementById("imgPreview");
+  const previewImg = document.getElementById("previewImg");
+  const PIC = "https://com.z2m.store/img/butterfly-icon.png";
+  let scrollTop = 0;
+
+  // 弹窗移到body根节点，修复定位
+  function movePreviewToBody(){
+    document.body.appendChild(previewBox);
+  }
+
+  // 打开图片预览
+  window.openImg = function(url){
+    movePreviewToBody();
+    scrollTop = window.scrollY;
+    previewImg.src = url;
+    previewBox.classList.add("show");
+    document.documentElement.style.position = 'fixed';
+    document.documentElement.style.top = `-${scrollTop}px`;
+    document.documentElement.style.width = '100%';
+  }
+
+  // 关闭图片预览
+  function closePreview(){
+    previewBox.classList.remove("show");
+    document.documentElement.style.position = '';
+    document.documentElement.style.top = '';
+    window.scrollTo(0, scrollTop);
+  }
+
+  // 关闭事件
+  previewBox.addEventListener("click", e => {
+    if(e.target === previewBox) closePreview();
+  });
+  document.addEventListener("keydown", e => {
+    if(e.key === "Escape") closePreview();
+  });
+
+  // 时间格式化
+  function formatTime(s){
+    if(!s) return "未知时间";
+    let d = new Date(s);
+    if(isNaN(d.getTime())) return "未知时间";
+    let pad = n => String(n).padStart(2,"0");
+    return d.getFullYear()+"年"+pad(d.getMonth()+1)+"月"+pad(d.getDate())+"日 "+pad(d.getHours())+":"+pad(d.getMinutes())+":"+pad(d.getSeconds());
+  }
+
+  // 生成图片标签
+  function createSafeImg(originUrl) {
+    return `<img 
+      src="${originUrl}" 
+      onclick="openImg('${originUrl}')" 
+      loading="eager" 
+      alt="说说图片" 
+      data-no-lazy="1"
+    >`;
+  }
+
+  // 拼接接口地址
+  function buildApiUrl(){
+    let url = `${API_BASE}/api/v1/memos?pageSize=${PAGE_SIZE}&sort=createTime&order=desc`;
+    if(pageToken){
+      url += `&pageToken=${encodeURIComponent(pageToken)}`;
+    }
+    return url;
+  }
+
+  // 加载数据（区分首次/滚动加载）
+  function loadData(isScrollLoad = false){
+    if(isLoading || !hasMore) return;
+
+    isLoading = true;
+    if(isScrollLoad){
+      loadTips.textContent = "加载中...";
+    }else{
+      wrap.innerHTML = '<div class="state-tips">加载中...</div>';
+    }
+
+    let xhr = new XMLHttpRequest();
+    xhr.timeout = 8000;
+    xhr.open("GET", buildApiUrl(), true);
+    xhr.setRequestHeader("Content-Type","application/json");
+
+    xhr.onload = function(){
+      isLoading = false;
+      if(xhr.status >= 200 && xhr.status < 300){
+        let data = JSON.parse(xhr.responseText);
+        let list = Array.isArray(data.memos) ? data.memos : [];
+        let nextToken = data.nextPageToken || "";
+        hasMore = !!nextToken;
+        pageToken = nextToken;
+
+        // 无数据
+        if(list.length === 0){
+          if(!isScrollLoad){
+            wrap.innerHTML = '<div class="state-tips">暂无说说</div>';
+          }
+          loadTips.textContent = "没有更多了";
+          return;
+        }
+
+        // 拼接HTML
+        let html = "";
+        for(let i = 0; i < list.length; i++){
+          let item = list[i];
+          let content = item.content || "";
+          let imgHtml = "";
+          if(Array.isArray(item.attachments) && item.attachments.length){
+            imgHtml = '<div class="img-grid">';
+            item.attachments.forEach(att => {
+              if(att.type && att.type.startsWith("image/")){
+                let imgUrl = IMG_DOMAIN + "/file/attachments/" + att.uid + "/" + att.filename;
+                imgHtml += createSafeImg(imgUrl);
+              }
+            });
+            imgHtml += "</div>";
+          }
+
+          html += `
+            <div class="memos-item">
+              <div class="avatar-wrap">
+                <img src=${PIC} loading="eager" data-no-lazy>
+              </div>
+              <div class="memos-content-wrap">
+                <div class="user-header">
+                  <span class="username">深漂小鱼</span>
+                  <span class="time">${formatTime(item.createTime)}</span>
+                </div>
+                <div class="memos-content">${content}</div>
+                ${imgHtml}
+              </div>
+            </div>
+          `;
+        }
+
+        // 首次加载替换，滚动加载追加
+        if(isScrollLoad){
+          wrap.insertAdjacentHTML('beforeend', html);
+        }else{
+          wrap.innerHTML = html;
+        }
+
+        // 更新底部提示
+        loadTips.textContent = hasMore ? "上拉加载更多" : "没有更多了";
+
+        // 清理懒加载残留
+        setTimeout(() => {
+          const allImg = document.querySelectorAll('img');
+          allImg.forEach(img => {
+            img.classList.remove('lazy');
+            img.removeAttribute('data-lazy');
+            img.removeAttribute('data-src');
+            if(img.src.includes("loading2.gif") && img.dataset.noLazy){
+              img.src = img.getAttribute('src');
+            }
+          });
+        }, 150);
+
+      }else{
+        loadTips.textContent = "加载失败，稍后重试";
+        if(!isScrollLoad){
+          wrap.innerHTML = '<div class="state-tips">请求失败</div>';
+        }
+      }
+    };
+
+    xhr.onerror = function(){
+      isLoading = false;
+      loadTips.textContent = "网络异常";
+      if(!isScrollLoad){
+        wrap.innerHTML = '<div class="state-tips">跨域/网络异常</div>';
+      }
+    };
+
+    xhr.ontimeout = function(){
+      isLoading = false;
+      loadTips.textContent = "请求超时";
+      if(!isScrollLoad){
+        wrap.innerHTML = '<div class="state-tips">请求超时</div>';
+      }
+    };
+
+    xhr.send();
+  }
+
+  // 滚动监听：触底自动加载（距离底部 150px 提前触发）
+  function handleScroll(){
+    if(isLoading || !hasMore) return;
+    const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
+    // 滚动位置 + 可视高度 >= 文档高度 - 150px → 触底加载
+    if(scrollTop + clientHeight >= scrollHeight - 150){
+      loadData(true);
+    }
+  }
+
+  // 绑定滚动事件
+  window.addEventListener('scroll', handleScroll);
+
+  // 页面销毁移除监听（防内存泄漏）
+  window.addEventListener('beforeunload', () => {
+    window.removeEventListener('scroll', handleScroll);
+  });
+
+  // 初始加载第一页
+  setTimeout(() => {
+    loadData(false);
+  }, 100);
+};
+</script>
