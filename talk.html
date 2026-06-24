@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>个人时光动态</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#f5f7fa;padding:20px;max-width:800px;margin:0 auto;font-family:system-ui}
+.card{background:#fff;border-radius:12px;padding:16px;margin-bottom:16px;box-shadow:0 2px 12px #0000000a}
+.publish-box{margin-bottom:30px}
+textarea{width:100%;border:1px solid #eee;border-radius:8px;padding:12px;min-height:100px;resize:none}
+button{margin-top:10px;padding:8px 20px;background:#409eff;color:#fff;border:none;border-radius:6px;cursor:pointer}
+.item-head{display:flex;gap:10px;align-items:center;margin-bottom:8px}
+.time{color:#999;font-size:13px}
+.content{line-height:1.6;margin:8px 0}
+.img-box{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.img-box img{width:120px;height:120px;object-fit:cover;border-radius:6px}
+</style>
+</head>
+<body>
+<div class="publish-box card">
+  <textarea id="textInput" placeholder="记录此刻心情..."></textarea>
+  <button onclick="postMoment()">发布动态</button>
+</div>
+<div id="list"></div>
+
+<script>
+const API_BASE = "https://twikoo.z2m.store";
+const SITE_ID = "default";
+
+// 加载所有动态
+async function loadList(){
+  const res = await fetch(`${API_BASE}/api/getComments`,{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({siteId:SITE_ID})
+  })
+  const json = await res.json();
+  if(json.code!==0) return alert("加载失败："+json.message);
+  const wrap = document.getElementById("list");
+  wrap.innerHTML = "";
+  json.data.comments.reverse().forEach(item=>{
+    const html = `
+    <div class="card">
+      <div class="item-head">
+        <span>${item.nick || "我"}</span>
+        <span class="time">${new Date(item.created).toLocaleString()}</span>
+      </div>
+      <div class="content">${item.content}</div>
+    </div>`;
+    wrap.innerHTML += html;
+  })
+}
+
+// 发布动态
+async function postMoment(){
+  const text = document.getElementById("textInput").value.trim();
+  if(!text) return alert("内容不能为空");
+  await fetch(`${API_BASE}/api/submitComment`,{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      siteId:SITE_ID,
+      nick:"我",
+      mail:"test@xxx.com",
+      content:text
+    })
+  })
+  document.getElementById("textInput").value = "";
+  loadList();
+}
+
+// 页面初始化加载
+loadList();
+</script>
+</body>
+</html>
