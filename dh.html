@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人服务导航</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#2563eb',
+                        card: '#f8fafc',
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        .link-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(37, 99, 235, 0.15);
+        }
+        .link-card {
+            transition: all 0.2s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen py-10 px-4">
+    <div class="max-w-5xl mx-auto">
+        <!-- 头部标题 -->
+        <header class="text-center mb-12">
+            <h1 class="text-[clamp(1.8rem,4vw,2.8rem)] font-bold text-gray-800 mb-2">个人服务导航面板</h1>
+            <p class="text-gray-500">Cloudflare / 飞牛Docker / 树莓派Docker 站点汇总</p>
+        </header>
+
+        <!-- 第一类：Cloudflare 部署站点 -->
+        <section class="mb-10">
+            <div class="flex items-center gap-2 mb-5">
+                <i class="fa fa-cloud text-primary text-xl"></i>
+                <h2 class="text-xl font-semibold text-gray-700">Cloudflare Pages 站点</h2>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                <!-- 这里是CF示例，自行替换域名、名称 -->
+                <a href="https://com.z2m.store" target="_blank" class="link-card bg-card rounded-lg p-4 border border-gray-200 flex flex-col items-center justify-center">
+                    <i class="fa fa-globe text-primary text-2xl mb-2"></i>
+                    <span class="text-gray-800 font-medium">个人博客</span>
+                    <span class="text-xs text-gray-400 mt-1">https://com.z2m.store</span>
+                </a>
+                <a href="https://bj.z2m.store" target="_blank" class="link-card bg-card rounded-lg p-4 border border-gray-200 flex flex-col items-center justify-center">
+                    <i class="fa fa-book text-primary text-2xl mb-2"></i>
+                    <span class="text-gray-800 font-medium">个人笔记</span>
+                    <span class="text-xs text-gray-400 mt-1">https://bj.z2m.store</span>
+                </a>				
+                <a href="https://pw1.z2m.store/636fe183-b3be-49ad-bba6-45fb94e859f0" target="_blank" class="link-card bg-card rounded-lg p-4 border border-gray-200 flex flex-col items-center justify-center">
+                    <i class="fa fa-share text-primary text-2xl mb-2"></i>
+                    <span class="text-gray-800 font-medium">免费翻墙</span>
+                    <span class="text-xs text-gray-400 mt-1">免费翻墙</span>
+                </a>
+                <a href="https://pic.z2m.store/" target="_blank" class="link-card bg-card rounded-lg p-4 border border-gray-200 flex flex-col items-center justify-center">
+                    <i class="fa fa-wrench text-primary text-2xl mb-2"></i>
+                    <span class="text-gray-800 font-medium">永久免费图床</span>
+                    <span class="text-xs text-gray-400 mt-1">永久免费图床</span>
+                </a>
+                <a href="https://img.z2m.store/" target="_blank" class="link-card bg-card rounded-lg p-4 border border-gray-200 flex flex-col items-center justify-center">
+                    <i class="fa fa-wrench text-primary text-2xl mb-2"></i>
+                    <span class="text-gray-800 font-medium">私人图床</span>
+                    <span class="text-xs text-gray-400 mt-1">私人图床</span>
+                </a>		
+                <a href="https://car.z2m.store/" target="_blank" class="link-card bg-card rounded-lg p-4 border border-gray-200 flex flex-col items-center justify-center">
+                    <i class="fa fa-car text-primary text-2xl mb-2"></i>
+                    <span class="text-gray-800 font-medium">挪车码</span>
+                    <span class="text-xs text-gray-400 mt-1">挪车码</span>
+                </a>					
+                <a href="https://bbs.z2m.store" target="_blank" class="link-card bg-card rounded-lg p-4 border border-gray-200 flex flex-col items-center justify-center">
+                    <i class="fa fa-folder-open text-primary text-2xl mb-2"></i>
+                    <span class="text-gray-800 font-medium">论坛</span>
+                    <span class="text-xs text-gray-400 mt-1">https://bbs.z2m.store</span>
+                </a>
+                <a href="https://blog.z2m.store" target="_blank" class="link-card bg-card rounded-lg p-4 border border-gray-200 flex flex-col items-center justify-center">
+                    <i class="fa fa-code text-primary text-2xl mb-2"></i>
+                    <span class="text-gray-800 font-medium">项目演示站</span>
+                    <span class="text-xs text-gray-400 mt-1">https://blog.z2m.store</span>
+                </a>
+                <a href="https://ss.z2m.store" target="_blank" class="link-card bg-card rounded-lg p-4 border border-gray-200 flex flex-col items-center justify-center">
+                    <i class="fa fa-comments text-primary text-2xl mb-2"></i>
+                    <span class="text-gray-800 font-medium">说说</span>
+                    <span class="text-xs text-gray-400 mt-1">https://blog.z2m.store</span>
+                </a>				
+            </div>
+        </section>
+		
+        <!-- 第二类：树莓派Docker 站点 -->
+        <section class="mb-10">
+            <div class="flex items-center gap-2 mb-5">
+                <i class="fa fa-microchip text-primary text-xl"></i>
+                <h2 class="text-xl font-semibold text-gray-700">树莓派 Docker 服务</h2>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                <a href="https://yu.z2m.store" target="_blank" class="link-card bg-card rounded-lg p-4 border border-gray-200 flex flex-col items-center justify-center">
+                    <i class="fa fa-link text-primary text-2xl mb-2"></i>
+                    <span class="text-gray-800 font-medium">Echo说说</span>
+                </a>
+                <a href="https://qq.z2m.store" target="_blank" class="link-card bg-card rounded-lg p-4 border border-gray-200 flex flex-col items-center justify-center">
+                    <i class="fa fa-comments text-primary text-2xl mb-2"></i>
+                    <span class="text-gray-800 font-medium">朋友圈</span>
+                </a>
+                <a href="https://plog.z2m.store" target="_blank" class="link-card bg-card rounded-lg p-4 border border-gray-200 flex flex-col items-center justify-center">
+                    <i class="fa fa-pencil text-primary text-2xl mb-2"></i>
+                    <span class="text-gray-800 font-medium">教育博客</span>
+                </a>
+                <a href="https://memo.z2m.store" target="_blank" class="link-card bg-card rounded-lg p-4 border border-gray-200 flex flex-col items-center justify-center">
+                    <i class="fa fa-edit text-primary text-2xl mb-2"></i>
+                    <span class="text-gray-800 font-medium">memos说说</span>
+                </a>
+                <a href="https://admin.z2m.store" target="_blank" class="link-card bg-card rounded-lg p-4 border border-gray-200 flex flex-col items-center justify-center">
+                    <i class="fa fa-cog text-primary text-2xl mb-2"></i>
+                    <span class="text-gray-800 font-medium">站点管理</span>
+                </a>
+                <a href="https://music.z2m.store" target="_blank" class="link-card bg-card rounded-lg p-4 border border-gray-200 flex flex-col items-center justify-center">
+                    <i class="fa fa-music text-primary text-2xl mb-2"></i>
+                    <span class="text-gray-800 font-medium">music站点</span>
+                </a>
+                <a href="https://zb.z2m.store" target="_blank" class="link-card bg-card rounded-lg p-4 border border-gray-200 flex flex-col items-center justify-center">
+                    <i class="fa fa-bar-chart text-primary text-2xl mb-2"></i>
+                    <span class="text-gray-800 font-medium">Z2M网关</span>
+                </a>
+                <a href="https://share.z2m.store" target="_blank" class="link-card bg-card rounded-lg p-4 border border-gray-200 flex flex-col items-center justify-center">
+                    <i class="fa fa-share-alt text-primary text-2xl mb-2"></i>
+                    <span class="text-gray-800 font-medium">文件分享</span>
+                </a>
+                <a href="https://jk.z2m.store" target="_blank" class="link-card bg-card rounded-lg p-4 border border-gray-200 flex flex-col items-center justify-center">
+                    <i class="fa fa-heartbeat text-primary text-2xl mb-2"></i>
+                    <span class="text-gray-800 font-medium">站点监控</span>
+                </a>
+                <a href="https://wx.z2m.store" target="_blank" class="link-card bg-card rounded-lg p-4 border border-gray-200 flex flex-col items-center justify-center">
+                    <i class="fa fa-wechat text-primary text-2xl mb-2"></i>
+                    <span class="text-gray-800 font-medium">wxpush公众号推送</span>
+                </a>
+                <a href="https://gw.z2m.store" target="_blank" class="link-card bg-card rounded-lg p-4 border border-gray-200 flex flex-col items-center justify-center">
+                    <i class="fa fa-exchange text-primary text-2xl mb-2"></i>
+                    <span class="text-gray-800 font-medium">本地网关</span>
+                </a>
+            </div>
+        </section>
+		
+        <!-- 第三类：飞牛Docker 站点 -->
+        <section class="mb-10">
+            <div class="flex items-center gap-2 mb-5">
+                <i class="fa fa-server text-primary text-xl"></i>
+                <h2 class="text-xl font-semibold text-gray-700">飞牛 Docker 服务（一般不开启，尽量不要访问这个）</h2>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                <a href="https://yy.z2m.store" target="_blank" class="link-card bg-card rounded-lg p-4 border border-gray-200 flex flex-col items-center justify-center">
+                    <i class="fa fa-file-text text-primary text-2xl mb-2"></i>
+                    <span class="text-gray-800 font-medium">飞牛Echo</span>
+                </a>
+                <a href="https://memos.z2m.store" target="_blank" class="link-card bg-card rounded-lg p-4 border border-gray-200 flex flex-col items-center justify-center">
+                    <i class="fa fa-sticky-note text-primary text-2xl mb-2"></i>
+                    <span class="text-gray-800 font-medium">飞牛memos</span>
+                </a>
+                <a href="https://doc.z2m.store" target="_blank" class="link-card bg-card rounded-lg p-4 border border-gray-200 flex flex-col items-center justify-center">
+                    <i class="fa fa-book text-primary text-2xl mb-2"></i>
+                    <span class="text-gray-800 font-medium">飞牛Alist</span>
+                </a>
+                <a href="https://cn.z2m.store" target="_blank" class="link-card bg-card rounded-lg p-4 border border-gray-200 flex flex-col items-center justify-center">
+                    <i class="fa fa-globe text-primary text-2xl mb-2"></i>
+                    <span class="text-gray-800 font-medium">飞牛博客</span>
+                </a>
+                <a href="https://pyq.z2m.store" target="_blank" class="link-card bg-card rounded-lg p-4 border border-gray-200 flex flex-col items-center justify-center">
+                    <i class="fa fa-image text-primary text-2xl mb-2"></i>
+                    <span class="text-gray-800 font-medium">飞牛朋友圈</span>
+                </a>
+                <a href="https://tw.z2m.store" target="_blank" class="link-card bg-card rounded-lg p-4 border border-gray-200 flex flex-col items-center justify-center">
+                    <i class="fa fa-map-marker text-primary text-2xl mb-2"></i>
+                    <span class="text-gray-800 font-medium">飞牛twikoo</span>
+                </a>
+                <a href="https://fx.z2m.store" target="_blank" class="link-card bg-card rounded-lg p-4 border border-gray-200 flex flex-col items-center justify-center">
+                    <i class="fa fa-line-chart text-primary text-2xl mb-2"></i>
+                    <span class="text-gray-800 font-medium">飞牛分享</span>
+                </a>
+            </div>
+        </section>
+
+
+
+        <!-- 页脚 -->
+        <footer class="mt-16 text-center text-sm text-gray-400">
+            <p>个人导航页 · 部署于 Cloudflare Pages</p>
+        </footer>
+    </div>
+</body>
+</html>
