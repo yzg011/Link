@@ -35,7 +35,6 @@
     "avatar": "https://img.z2m.store/file/public/1778862620159_g.png",
     "description": "分享个人生活动态"
   },
-  
   {
     "name": "年华",
     "url": "https://blog.520781.xyz/",
@@ -60,7 +59,6 @@
     "avatar": "https://www.google.com/s2/favicons?domain=seasir.top&sz=128",
     "description": "人心中的成见是一座大山"
   },
-
   {
     "name": "Saimen",
     "url": "https://vlog.z2m.store",
@@ -90,5 +88,11 @@
     "url": "https://tblog.mmzhiku.xyz/",
     "avatar": "https://www.google.com/s2/favicons?domain=tblog.mmzhiku.xyz&sz=128",
     "description": "哈基米，南北绿豆"
+  },
+  {
+    "name": "绿野仙踪",
+    "url": "https://tblog.z2m.store",
+    "avatar": "https://www.google.com/s2/favicons?domain=tblog.z2m.store&sz=128",
+    "description": "生活动态，技术博客"
   }
 ]
