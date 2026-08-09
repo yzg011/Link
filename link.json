@@ -1,0 +1,98 @@
+[
+  {
+    "name": "个人主页",
+    "link": "https://home.z2m.store",
+    "avatar": "https://img.z2m.store/file/public/1778862620159_g.png",
+    "description": "博客主页"
+  },
+  {
+    "name": "笔记📒",
+    "link": "https://bj.z2m.store",
+    "avatar": "https://bj.z2m.store/logo.png",
+    "description": "一个安防人的笔记"
+  },
+  {
+    "name": "免费图床",
+    "link": "https://pic.z2m.store",
+    "avatar": "https://img.z2m.store/file/public/1779443156389_imglogo.png",
+    "description": "永久免费图床"
+  },
+  {
+    "name": "小鱼钓猫🐱",
+    "link": "https://blog.z2m.store",
+    "avatar": "https://img.z2m.store/file/public/1778862620159_g.png",
+    "description": "技术成长、生活随笔"
+  },
+  {
+    "name": "个人博客",
+    "link": "https://com.z2m.store",
+    "avatar": "https://com.z2m.store/img/butterfly-icon.png",
+    "description": "读史可以明智,知古方能鉴今"
+  },
+  {
+    "name": "碎碎念",
+    "link": "https://yu.z2m.store",
+    "avatar": "https://img.z2m.store/file/public/1778862620159_g.png",
+    "description": "分享个人生活动态"
+  },
+  {
+    "name": "年华",
+    "link": "https://blog.520781.xyz/",
+    "avatar": "https://q1.qlogo.cn/g?b=qq&nk=1323860289&s=640",
+    "description": "分享生活和技术。"
+  },
+  {
+    "name": "朋友圈",
+    "link": "https://py.z2m.store/",
+    "avatar": "https://img.z2m.store/file/public/1779520719876_pyq.jpg",
+    "description": "你我的朋友圈"
+  },
+  {
+    "name": "十三",
+    "link": "https://blog.nw177.cn",
+    "avatar": "https://blog.nw177.cn/assets/avatar.webp",
+    "description": "欲买桂花同载酒，终不似，少年游。"
+  },
+  {
+    "name": "Hyde Blog",
+    "link": "https://seasir.top/",
+    "avatar": "https://www.google.com/s2/favicons?domain=seasir.top&sz=128",
+    "description": "人心中的成见是一座大山"
+  },
+  {
+    "name": "Saimen",
+    "link": "https://vlog.z2m.store",
+    "avatar": "https://img.z2m.store/file/public/1778862620159_g.png",
+    "description": "在线编辑blog，随时随地发布文章"
+  },
+  {
+    "name": "Eysnter的窝窝",
+    "link": "https://eysnter.cn/",
+    "avatar": "https://img.eysnter.cn/file/posts/icon/1780993886377_0122.webp",
+    "description": "头顶长颗草，幸福会开花!"
+  },
+  {
+    "name": "BBS",
+    "link": "https://bbs.z2m.store",
+    "avatar": "https://img.z2m.store/file/public/1778862620159_g.png",
+    "description": "极简论坛"
+  },
+  {
+    "name": "D_SUPER BLOG",
+    "link": "https://dsuper.xyz",
+    "avatar": "https://dsuper.xyz/avatar.png",
+    "description": "分享效率笔记、娱乐生活"
+  },
+  {
+    "name": "MmzMing的知识库",
+    "link": "https://tblog.mmzhiku.xyz/",
+    "avatar": "https://www.google.com/s2/favicons?domain=tblog.mmzhiku.xyz&sz=128",
+    "description": "哈基米，南北绿豆"
+  },
+  {
+    "name": "绿野仙踪",
+    "link": "https://tblog.z2m.store",
+    "avatar": "https://www.google.com/s2/favicons?domain=tblog.z2m.store&sz=128",
+    "description": "生活动态，技术博客"
+  }
+]
