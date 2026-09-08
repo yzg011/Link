@@ -17,10 +17,25 @@
   let isPolling = false;
   let pollingActive = false;
 
-  // 注入CSS
+  // 注入CSS：移除全局*，仅作用挂件内部元素
   const style = document.createElement("style");
   style.textContent = `
-    *{box-sizing:border-box;margin:0;padding:0;font-family:system-ui}
+    #tgchat-widget-icon,
+    #tgchat-popup,
+    #tgchat-popup *,
+    .tgchat-bubble,
+    .tgchat-text,
+    .tgchat-time,
+    #tgchat-header,
+    #tgchat-close,
+    #tgchat-messages,
+    #tgchat-input-area,
+    #tgchat-input,
+    #tgchat-send,
+    .tgchat-footer {
+      box-sizing:border-box;
+      font-family:system-ui;
+    }
     #tgchat-widget-icon{
       position:fixed;
       bottom:24px;
