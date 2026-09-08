@@ -1,6 +1,6 @@
 (function () {
   const scriptEl = document.currentScript;
-  // 读取data属性配置
+  // 读取data配置
   const config = {
     tgBotUrl: scriptEl.dataset.tgBotUrl || "",
     tgGetUrl: scriptEl.dataset.tgGetUrl || "",
