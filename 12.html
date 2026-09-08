@@ -62,7 +62,9 @@
 }
 .msg-bubble{
     max-width:80%;
-    padding:10px 14px;
+    padding:8px 14px;
+    /* 关键：给气泡开启定位，给时间做锚点 */
+    position:relative;
     border-radius:16px;
     margin-bottom:10px;
 }
@@ -74,6 +76,25 @@
     background:#22d3ee;
     color:#000;
     margin-left:auto;
+}
+.msg-text{
+    word-break:break-word;
+    font-size:15px;
+    /* 单行文字上下居中，多行正常 */
+    line-height:1.45;
+    /* 给右下角时间留出一点右边距离，防止文字和时间重叠 */
+    padding-right:48px;
+}
+/* 时间：绝对定位，脱离文档流，不挤压文字！！ */
+.msg-time{
+    position:absolute;
+    right:12px;
+    bottom:6px;
+    font-size:11px;
+    color:#999;
+}
+.msg-user .msg-time{
+    color:#444;
 }
 /* 输入框区域 */
 #chat-input-area{
@@ -116,7 +137,7 @@
         <button id="close-btn">×</button>
     </div>
     <div id="chat-messages">
-        <div class="msg-bubble msg-server">Hello!</div>
+        <!--初始消息JS生成-->
     </div>
     <div class="tip-footer">Powered by Telegram Bot</div>
     <div id="chat-input-area">
@@ -144,6 +165,47 @@ let offset = 0;
 let isPolling = false;
 let pollingActive = false;
 
+// 格式化Unix时间戳(TG返回date) HH:mm
+function formatTime(timestamp) {
+    const date = new Date(timestamp * 1000);
+    const h = date.getHours().toString().padStart(2, "0");
+    const m = date.getMinutes().toString().padStart(2, "0");
+    return `${h}:${m}`;
+}
+// 获取本地当前时间 HH:mm
+function getLocalTime() {
+    const now = new Date();
+    const h = now.getHours().toString().padStart(2, "0");
+    const m = now.getMinutes().toString().padStart(2, "0");
+    return `${h}:${m}`;
+}
+
+// 添加消息气泡
+function addMessage(text, isUser=true, timestamp=null){
+    const div = document.createElement("div");
+    div.className = "msg-bubble " + (isUser ? "msg-user":"msg-server");
+
+    const textEl = document.createElement("div");
+    textEl.className = "msg-text";
+    textEl.textContent = text;
+
+    const timeEl = document.createElement("div");
+    timeEl.className = "msg-time";
+    if(timestamp){
+        timeEl.textContent = formatTime(timestamp);
+    }else{
+        timeEl.textContent = getLocalTime();
+    }
+
+    div.appendChild(textEl);
+    div.appendChild(timeEl);
+    msgBox.appendChild(div);
+    msgBox.scrollTop = msgBox.scrollHeight;
+}
+
+//初始化欢迎消息
+addMessage("Hello!", false);
+
 // 打开关闭弹窗
 floatBtn.onclick = ()=> {
     popup.style.display = "flex";
@@ -154,15 +216,6 @@ closeBtn.onclick = ()=> {
     popup.style.display = "none";
     pollingActive = false;
 };
-
-// 添加消息气泡
-function addMessage(text, isUser=true){
-    const div = document.createElement("div");
-    div.className = "msg-bubble " + (isUser ? "msg-user":"msg-server");
-    div.textContent = text;
-    msgBox.appendChild(div);
-    msgBox.scrollTop = msgBox.scrollHeight;
-}
 
 // 发送消息到TG
 async function sendToTelegram(text){
@@ -200,7 +253,7 @@ async function runPollLoop(){
             for(const update of json.result){
                 const msg = update.message;
                 if(!msg || !msg.text) continue;
-                addMessage(msg.text, false);
+                addMessage(msg.text, false, msg.date);
                 // ✅处理完这条消息立刻更新offset，下一次就不会再拿到
                 offset = update.update_id + 1;
             }
