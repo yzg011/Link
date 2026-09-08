@@ -70,6 +70,11 @@
     background:#efefef;
     align-self:flex-start;
 }
+.msg-user{
+    background:#22d3ee;
+    color:#000;
+    margin-left:auto;
+}
 /* 输入框区域 */
 #chat-input-area{
     display:flex;
@@ -122,8 +127,10 @@
 
 <script>
 // ============配置区============
-const TG_API_URL = "https://tg.z2m.store/bot8853776327:AAG8dkQ1bsJG9-l84mb5cJE8VfIZJoS9Zt4/sendMessage";
+const TG_SEND_URL = "https://tg.z2m.store/bot8853776327:AAG8dkQ1bsJG9-l84mb5cJE8VfIZJoS9Zt4/sendMessage";
+const TG_GETUPDATES_URL = "https://tg.z2m.store/bot8853776327:AAG8dkQ1bsJG9-l84mb5cJE8VfIZJoS9Zt4/getUpdates";
 const CHAT_ID = 8838248851; // 修改为你的TG chat_id
+const POLL_DELAY = 1200; // 请求结束后等待毫秒
 // ==============================
 
 const floatBtn = document.querySelector("#chat-float-btn");
@@ -133,9 +140,20 @@ const msgInput = document.querySelector("#msg-input");
 const sendBtn = document.querySelector("#send-btn");
 const msgBox = document.querySelector("#chat-messages");
 
+let offset = 0;
+let isPolling = false;
+let pollingActive = false;
+
 // 打开关闭弹窗
-floatBtn.onclick = ()=> popup.style.display = "flex";
-closeBtn.onclick = ()=> popup.style.display = "none";
+floatBtn.onclick = ()=> {
+    popup.style.display = "flex";
+    pollingActive = true;
+    runPollLoop();
+};
+closeBtn.onclick = ()=> {
+    popup.style.display = "none";
+    pollingActive = false;
+};
 
 // 添加消息气泡
 function addMessage(text, isUser=true){
@@ -153,8 +171,7 @@ async function sendToTelegram(text){
         text: text
     };
     try{
-        // ⚠️ 直接浏览器调用tg.z2m.store会出现CORS跨域错误！本地代理环境可以测试，正式网站必须后端中转
-        const res = await fetch(TG_API_URL,{
+        const res = await fetch(TG_SEND_URL,{
             method:"POST",
             headers:{"Content-Type":"application/json"},
             body: JSON.stringify(payload)
@@ -168,7 +185,34 @@ async function sendToTelegram(text){
         }
     }catch(err){
         console.error(err);
-        alert("跨域错误！不能前端直接调用TG API，需要后端接口转发请求");
+        alert("请求异常");
+    }
+}
+
+// 串行递归轮询，绝对不会并发多个getUpdates请求
+async function runPollLoop(){
+    if (!pollingActive || isPolling) return;
+    isPolling = true;
+    try {
+        const resp = await fetch(`${TG_GETUPDATES_URL}?offset=${offset}&timeout=5`);
+        const json = await resp.json();
+        if(json.ok && Array.isArray(json.result)){
+            for(const update of json.result){
+                const msg = update.message;
+                if(!msg || !msg.text) continue;
+                addMessage(msg.text, false);
+                // ✅处理完这条消息立刻更新offset，下一次就不会再拿到
+                offset = update.update_id + 1;
+            }
+        }
+    }catch(e){
+        console.warn("轮询消息异常", e);
+    }finally{
+        isPolling = false;
+        if(pollingActive){
+            // 请求全部完成之后，再延时发起下一轮
+            setTimeout(runPollLoop, POLL_DELAY);
+        }
     }
 }
 
@@ -180,6 +224,10 @@ sendBtn.onclick = ()=>{
 msgInput.onkeydown = (e)=>{
     if(e.key === "Enter") sendBtn.click();
 }
+
+window.addEventListener('beforeunload', ()=>{
+    pollingActive = false;
+});
 </script>
 
 </body>
