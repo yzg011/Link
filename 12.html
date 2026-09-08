@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TG Live Chat Popup</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui}
+/* 右下角悬浮按钮 */
+#chat-float-btn{
+    position:fixed;
+    bottom:24px;
+    right:24px;
+    width:56px;height:56px;
+    border-radius:50%;
+    background:#22d3ee;
+    border:none;
+    color:white;
+    font-size:24px;
+    cursor:pointer;
+    box-shadow:0 4px 12px #00000026;
+    z-index:9999;
+}
+/* 弹窗窗口 */
+#chat-popup{
+    display:none;
+    position:fixed;
+    bottom:90px;
+    right:24px;
+    width:360px;
+    height:620px;
+    background:#fff;
+    border-radius:12px;
+    box-shadow:0 4px 20px #00000033;
+    overflow:hidden;
+    z-index:9999;
+    flex-direction:column;
+}
+/* 弹窗头部 */
+#chat-header{
+    background:#22d3ee;
+    color:#000;
+    padding:12px 16px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    font-size:22px;
+    font-weight:bold;
+}
+#close-btn{
+    background:transparent;
+    border:none;
+    font-size:24px;
+    cursor:pointer;
+}
+/* 消息区域 */
+#chat-messages{
+    flex:1;
+    padding:16px;
+    overflow-y:auto;
+    background:#ffffff;
+}
+.msg-bubble{
+    max-width:80%;
+    padding:10px 14px;
+    border-radius:16px;
+    margin-bottom:10px;
+}
+.msg-server{
+    background:#efefef;
+    align-self:flex-start;
+}
+/* 输入框区域 */
+#chat-input-area{
+    display:flex;
+    padding:10px;
+    border-top:1px solid #eee;
+    gap:8px;
+}
+#msg-input{
+    flex:1;
+    padding:10px 12px;
+    border:1px solid #ddd;
+    border-radius:8px;
+    font-size:15px;
+}
+#send-btn{
+    padding:0 16px;
+    background:#22d3ee;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+}
+.tip-footer{
+    text-align:center;
+    font-size:12px;
+    color:#aaa;
+    padding:6px;
+}
+</style>
+</head>
+<body>
+
+<!-- 悬浮按钮 -->
+<button id="chat-float-btn">💬</button>
+
+<!-- 聊天弹窗 -->
+<div id="chat-popup">
+    <div id="chat-header">
+        Live Chat
+        <button id="close-btn">×</button>
+    </div>
+    <div id="chat-messages">
+        <div class="msg-bubble msg-server">Hello!</div>
+    </div>
+    <div class="tip-footer">Powered by Telegram Bot</div>
+    <div id="chat-input-area">
+        <input id="msg-input" placeholder="输入消息..." />
+        <button id="send-btn">发送</button>
+    </div>
+</div>
+
+<script>
+// ============配置区============
+const TG_API_URL = "https://tg.z2m.store/bot8853776327:AAG8dkQ1bsJG9-l84mb5cJE8VfIZJoS9Zt4/sendMessage";
+const CHAT_ID = 8838248851; // 修改为你的TG chat_id
+// ==============================
+
+const floatBtn = document.querySelector("#chat-float-btn");
+const popup = document.querySelector("#chat-popup");
+const closeBtn = document.querySelector("#close-btn");
+const msgInput = document.querySelector("#msg-input");
+const sendBtn = document.querySelector("#send-btn");
+const msgBox = document.querySelector("#chat-messages");
+
+// 打开关闭弹窗
+floatBtn.onclick = ()=> popup.style.display = "flex";
+closeBtn.onclick = ()=> popup.style.display = "none";
+
+// 添加消息气泡
+function addMessage(text, isUser=true){
+    const div = document.createElement("div");
+    div.className = "msg-bubble " + (isUser ? "msg-user":"msg-server");
+    div.textContent = text;
+    msgBox.appendChild(div);
+    msgBox.scrollTop = msgBox.scrollHeight;
+}
+
+// 发送消息到TG
+async function sendToTelegram(text){
+    const payload = {
+        chat_id: CHAT_ID,
+        text: text
+    };
+    try{
+        // ⚠️ 直接浏览器调用tg.z2m.store会出现CORS跨域错误！本地代理环境可以测试，正式网站必须后端中转
+        const res = await fetch(TG_API_URL,{
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if(data.ok){
+            addMessage(text, true);
+            msgInput.value = "";
+        }else{
+            alert("发送失败:" + JSON.stringify(data));
+        }
+    }catch(err){
+        console.error(err);
+        alert("跨域错误！不能前端直接调用TG API，需要后端接口转发请求");
+    }
+}
+
+// 点击发送 /回车发送
+sendBtn.onclick = ()=>{
+    const txt = msgInput.value.trim();
+    if(txt) sendToTelegram(txt);
+}
+msgInput.onkeydown = (e)=>{
+    if(e.key === "Enter") sendBtn.click();
+}
+</script>
+
+</body>
+</html>
