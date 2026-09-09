@@ -7,7 +7,7 @@
     chatId: Number(scriptEl.dataset.chatId) || 0,
     themeColor: scriptEl.dataset.themeColor || "#22d3ee",
     openWidth: parseInt(scriptEl.dataset.openWidth || "360", 10),
-    openHeight: parseInt(scriptEl.dataset.openHeight || "520", 10),
+    openHeight: parseInt(scriptEl.dataset.openHeight || "600", 10),
     welcome: scriptEl.dataset.welcome || "Hello!",
     popupTitle: scriptEl.dataset.popupTitle || "TG聊天",
     pollDelay: parseInt(scriptEl.dataset.pollDelay || "1200",10),
