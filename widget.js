@@ -7,7 +7,7 @@
     chatId: Number(scriptEl.dataset.chatId) || 0,
     themeColor: scriptEl.dataset.themeColor || "#22d3ee",
     openWidth: parseInt(scriptEl.dataset.openWidth || "360", 10),
-    openHeight: parseInt(scriptEl.dataset.openHeight || "620", 10),
+    openHeight: parseInt(scriptEl.dataset.openHeight || "520", 10),
     welcome: scriptEl.dataset.welcome || "Hello!",
     popupTitle: scriptEl.dataset.popupTitle || "TG聊天",
     pollDelay: parseInt(scriptEl.dataset.pollDelay || "1200",10),
@@ -17,7 +17,7 @@
   let isPolling = false;
   let pollingActive = false;
 
-  // 注入CSS：移除全局*，仅作用挂件内部元素
+  // 注入CSS：移除全局*，仅作用挂件内部元素，修复移动端软键盘挤压
   const style = document.createElement("style");
   style.textContent = `
     #tgchat-widget-icon,
@@ -50,15 +50,37 @@
     }
     #tgchat-widget-icon:hover{transform:scale(1.08);}
     #tgchat-popup{
-      display:none;position:fixed;bottom:90px;right:24px;
-      width:${config.openWidth}px;height:${config.openHeight}px;background:#0e1621;
-      border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,0.4);
-      overflow:hidden;z-index:9998;flex-direction:column;
+      display:none;
+      position:fixed;
+      bottom:90px;
+      right:24px;
+      width:${config.openWidth}px;
+      /* 重点：不用固定height，改用max-height，高度自适应 */
+      max-height:${config.openHeight}px;
+      background:#0e1621;
+      border-radius:12px;
+      box-shadow:0 4px 24px rgba(0,0,0,0.4);
+      overflow:hidden;
+      z-index:9998;
+      flex-direction:column;
     }
     #tgchat-popup.open{display:flex;}
+    /* 移动端适配：屏幕小于480px，弹窗贴满右侧，限制最大高度为视口高度 */
+    @media (max-width: 480px) {
+      #tgchat-popup{
+        width: calc(100% - 16px);
+        right:8px;
+        bottom:80px;
+        max-height: calc(100vh - 100px);
+      }
+      #tgchat-widget-icon{
+        bottom:16px;
+        right:16px;
+      }
+    }
     #tgchat-header{background:#182533;color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;font-size:18px;font-weight:bold;}
     #tgchat-close{background:transparent;border:none;font-size:22px;color:#fff;cursor:pointer;}
-    #tgchat-messages{flex:1;padding:16px;overflow-y:auto;background:#0e1621;}
+    #tgchat-messages{flex:1;padding:16px;overflow-y:auto;background:#0e1621;min-height:0;}
     .tgchat-bubble{max-width:80%;padding:8px 14px;position:relative;border-radius:16px;margin-bottom:10px;}
     .tgchat-bubble-server{background:#182533;align-self:flex-start;color:#fff;}
     .tgchat-bubble-user{background:${config.themeColor};color:#000;margin-left:auto;}
@@ -102,6 +124,13 @@
   const sendBtn = popup.querySelector("#tgchat-send");
   const msgBox = popup.querySelector("#tgchat-messages");
 
+  // 监听视口变化（软键盘弹出/收起）动态限制弹窗高度
+  function setPopupViewportHeight() {
+    const availHeight = window.innerHeight;
+    popup.style.maxHeight = `${availHeight - 100}px`;
+  }
+  window.addEventListener('resize', setPopupViewportHeight);
+
   // 时间格式化
   function formatTime(timestamp) {
     const d = new Date(timestamp * 1000);
@@ -132,6 +161,7 @@
   widgetIcon.addEventListener("click", ()=>{
     popup.classList.toggle("open");
     if(popup.classList.contains("open")){
+      setPopupViewportHeight();
       pollingActive = true;
       runPollLoop();
     }else{
