@@ -77,6 +77,7 @@
       pointer-events:auto;
       display:flex;
       flex-direction:column;
+      min-height:600px;
     }
     #tgchat-header{background:#182533;color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;font-size:18px;font-weight:bold;}
     #tgchat-close{background:transparent;border:none;font-size:22px;color:#fff;cursor:pointer;}
