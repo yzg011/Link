@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TG悬浮聊天挂件 VoceChat风格</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui}
+
+/* ==========悬浮挂件图标 右下角固定========== */
+#chat-widget-icon{
+    position:fixed;
+    bottom:24px;
+    right:24px;
+    width:56px;
+    height:56px;
+    border-radius:50%;
+    background:#22d3ee;
+    border:none;
+    color:#000;
+    font-size:24px;
+    cursor:pointer;
+    box-shadow:0 4px 14px rgba(0,0,0,0.25);
+    z-index:9999;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition: transform 0.2s ease;
+}
+#chat-widget-icon:hover{
+    transform: scale(1.08);
+}
+
+/* ==========聊天弹窗容器 默认隐藏========== */
+#chat-popup{
+    display:none;
+    position:fixed;
+    bottom:90px;
+    right:24px;
+    width:360px;
+    height:620px;
+    background:#0e1621;
+    border-radius:12px;
+    box-shadow:0 4px 24px rgba(0,0,0,0.4);
+    overflow:hidden;
+    z-index:9998;
+    flex-direction:column;
+}
+#chat-popup.open{
+    display:flex;
+}
+
+/*弹窗头部*/
+#chat-header{
+    background:#182533;
+    color:#ffffff;
+    padding:12px 16px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    font-size:18px;
+    font-weight:bold;
+}
+#close-btn{
+    background:transparent;
+    border:none;
+    font-size:22px;
+    cursor:pointer;
+    color:#fff;
+}
+
+/*消息列表区域 TG深色背景*/
+#chat-messages{
+    flex:1;
+    padding:16px;
+    overflow-y:auto;
+    background:#0e1621;
+}
+.msg-bubble{
+    max-width:80%;
+    padding:8px 14px;
+    position:relative;
+    border-radius:16px;
+    margin-bottom:10px;
+}
+.msg-server{
+    background:#182533;
+    align-self:flex-start;
+    color:#ffffff;
+}
+.msg-user{
+    background:#22d3ee;
+    color:#000000;
+    margin-left:auto;
+}
+.msg-text{
+    word-break:break-word;
+    font-size:15px;
+    line-height:1.45;
+    padding-right:48px;
+}
+.msg-time{
+    position:absolute;
+    right:12px;
+    bottom:6px;
+    font-size:11px;
+    color:rgba(255,255,255,0.35);
+}
+.msg-user .msg-time{
+    color:rgba(0,0,0,0.45);
+}
+
+/*底部输入栏*/
+#chat-input-area{
+    display:flex;
+    padding:10px;
+    border-top:1px solid rgba(255,255,255,0.08);
+    gap:8px;
+    background:#0e1621;
+}
+#msg-input{
+    flex:1;
+    padding:10px 12px;
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:8px;
+    font-size:15px;
+    background:#182533;
+    color:#ffffff;
+    outline:none;
+}
+#msg-input::placeholder{
+    color:rgba(255,255,255,0.45);
+}
+#send-btn{
+    padding:0 16px;
+    background:#22d3ee;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+    color:#000000;
+}
+.tip-footer{
+    text-align:center;
+    font-size:12px;
+    color:rgba(255,255,255,0.35);
+    padding:4px 6px;
+    background:#0e1621;
+}
+</style>
+</head>
+<body>
+
+<!-- 页面内容，可以随便写测试页面 -->
+<div style="padding:30px;">
+    <h2>私聊</h2>
+    <p>点击👆右下角气泡可以和我聊天哦</p>
+
+</div>
+
+<!-- =====悬浮聊天挂件组件===== -->
+<!--右下角圆形图标按钮-->
+<button id="chat-widget-icon">💬</button>
+
+<!--聊天弹窗-->
+<div id="chat-popup">
+    <div id="chat-header">
+        TG聊天
+        <button id="close-btn">×</button>
+    </div>
+    <div id="chat-messages">
+        <!--消息由JS动态生成-->
+    </div>
+    <div class="tip-footer">Powered by Telegram Bot</div>
+    <div id="chat-input-area">
+        <input id="msg-input" placeholder="输入消息..." />
+        <button id="send-btn">发送</button>
+    </div>
+</div>
+
+<script>
+// ============配置区============
+const TG_SEND_URL = "https://ttg.z2m.store/sendMessage";
+const TG_GETUPDATES_URL = "https://ttg.z2m.store/getUpdates";
+const CHAT_ID = 8838248851; // 修改为你的TG chat_id
+const POLL_DELAY = 1200; // 请求结束后等待毫秒
+// ==============================
+
+const widgetIcon = document.querySelector("#chat-widget-icon");
+const popup = document.querySelector("#chat-popup");
+const closeBtn = document.querySelector("#close-btn");
+const msgInput = document.querySelector("#msg-input");
+const sendBtn = document.querySelector("#send-btn");
+const msgBox = document.querySelector("#chat-messages");
+
+let offset = 0;
+let isPolling = false;
+let pollingActive = false;
+
+//挂件点击切换弹窗打开关闭
+widgetIcon.addEventListener("click",()=>{
+    popup.classList.toggle("open");
+    if(popup.classList.contains("open")){
+        pollingActive = true;
+        runPollLoop();
+    }else{
+        pollingActive = false;
+    }
+})
+//关闭按钮
+closeBtn.addEventListener("click",()=>{
+    popup.classList.remove("open");
+    pollingActive = false;
+})
+
+//时间格式化
+function formatTime(timestamp) {
+    const date = new Date(timestamp * 1000);
+    const h = date.getHours().toString().padStart(2, "0");
+    const m = date.getMinutes().toString().padStart(2, "0");
+    return `${h}:${m}`;
+}
+function getLocalTime() {
+    const now = new Date();
+    const h = now.getHours().toString().padStart(2, "0");
+    const m = now.getMinutes().toString().padStart(2, "0");
+    return `${h}:${m}`;
+}
+
+//创建消息气泡
+function addMessage(text, isUser=true, timestamp=null){
+    const div = document.createElement("div");
+    div.className = "msg-bubble " + (isUser ? "msg-user":"msg-server");
+
+    const textEl = document.createElement("div");
+    textEl.className = "msg-text";
+    textEl.textContent = text;
+
+    const timeEl = document.createElement("div");
+    timeEl.className = "msg-time";
+    timeEl.textContent = timestamp ? formatTime(timestamp) : getLocalTime();
+
+    div.appendChild(textEl);
+    div.appendChild(timeEl);
+    msgBox.appendChild(div);
+    msgBox.scrollTop = msgBox.scrollHeight;
+}
+
+//初始化欢迎消息
+addMessage("Hello!", false);
+
+//发送消息
+async function sendToTelegram(text){
+    const payload = {chat_id: CHAT_ID, text:text};
+    try{
+        const res = await fetch(TG_SEND_URL,{
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if(data.ok){
+            addMessage(text, true);
+            msgInput.value = "";
+        }else{
+            alert("发送失败:" + JSON.stringify(data));
+        }
+    }catch(err){
+        console.error(err);
+        alert("请求异常");
+    }
+}
+
+//轮询消息
+async function runPollLoop(){
+    if (!pollingActive || isPolling) return;
+    isPolling = true;
+    try {
+        const resp = await fetch(`${TG_GETUPDATES_URL}?offset=${offset}&timeout=5`);
+        const json = await resp.json();
+        if(json.ok && Array.isArray(json.result)){
+            for(const update of json.result){
+                const msg = update.message;
+                if(!msg || !msg.text) continue;
+                addMessage(msg.text, false, msg.date);
+                offset = update.update_id + 1;
+            }
+        }
+    }catch(e){
+        console.warn("轮询消息异常", e);
+    }finally{
+        isPolling = false;
+        if(pollingActive){
+            setTimeout(runPollLoop, POLL_DELAY);
+        }
+    }
+}
+
+//发送按钮、回车发送
+sendBtn.onclick = ()=>{
+    const txt = msgInput.value.trim();
+    if(txt) sendToTelegram(txt);
+}
+msgInput.onkeydown = (e)=>{
+    if(e.key === "Enter") sendBtn.click();
+}
+</script>
+
+</body>
+</html>
