@@ -68,7 +68,7 @@
       position:absolute;
       bottom:90px;
       width:${config.openWidth}px;
-      max-width: calc(100vw - 32px);
+      max-width: calc(100vw - 20px);
       background:#0e1621;
       border-radius:12px;
       box-shadow:0 4px 24px rgba(0,0,0,0.4);
