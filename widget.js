@@ -62,13 +62,12 @@
     #tgchat-popup-wrap.open {
       display:block;
     }
-    /* 内层弹窗：增加overflow-x:hidden，max-width限制横向溢出 */
+    /* 内层弹窗：取消固定right，JS动态控制left、bottom */
     #tgchat-popup{
       position:absolute;
       bottom:90px;
-      right:24px;
       width:${config.openWidth}px;
-      max-width: calc(100vw - 40px);
+      max-width: calc(100vw - 32px);
       max-height:${config.openHeight}px;
       background:#0e1621;
       border-radius:12px;
@@ -89,24 +88,18 @@
     .tgchat-time{position:absolute;right:12px;bottom:6px;font-size:11px;color:rgba(255,255,255,0.35);}
     .tgchat-bubble-user .tgchat-time{color:rgba(0,0,0,0.45);}
     #tgchat-input-area{display:flex;padding:10px;border-top:1px solid rgba(255,255,255,0.08);gap:8px;background:#0e1621;}
-    #tgchat-input{flex:1;padding:10px 12px;border:1px solid rgba(255,255,255,0.08);border-radius:8px;font-size:15px;background:#182533;color:#fff;outline:none;}
+    /* ===== 核心修复 input字体强制16px，阻止iOS自动缩放页面 ===== */
+    #tgchat-input{
+      flex:1;
+      padding:10px 12px;
+      border:1px solid rgba(255,255,255,0.08);
+      border-radius:8px;
+      font-size:16px !important;
+      background:#182533;color:#fff;outline:none;
+    }
     #tgchat-input::placeholder{color:rgba(255,255,255,0.45);}
     #tgchat-send{padding:0 16px;background:${config.themeColor};border:none;border-radius:8px;cursor:pointer;color:#000;}
     .tgchat-footer{text-align:center;font-size:12px;color:rgba(255,255,255,0.35);padding:4px 6px;background:#0e1621;}
-
-    /* 移动端媒体查询，强制宽度不超出屏幕 */
-    @media (max-width: 480px) {
-      #tgchat-popup{
-        width: calc(100% - 16px) !important;
-        max-width: calc(100% - 16px) !important;
-        right:8px;
-        bottom:80px;
-      }
-      #tgchat-widget-icon{
-        bottom:16px;
-        right:16px;
-      }
-    }
   `;
   document.head.appendChild(style);
 
@@ -143,23 +136,30 @@
   const sendBtn = popup.querySelector("#tgchat-send");
   const msgBox = popup.querySelector("#tgchat-messages");
 
-  // 同时修正【横向宽度】+【纵向高度】
+  // 【核心修复】根据visualViewport计算弹窗位置，解决页面缩放偏移
   function setPopupViewportSize() {
-    const viewport = window.visualViewport || {width: window.innerWidth, height: window.innerHeight};
+    const viewport = window.visualViewport || {width: window.innerWidth, height: window.innerHeight, scale:1, offsetLeft:0};
     const availWidth = viewport.width;
     const availHeight = viewport.height;
+    const scale = viewport.scale || 1;
 
-    // 横向最大宽度：可视宽度减去左右留白，防止超出屏幕右侧
+    // 最大可用宽度
     const maxW = availWidth - 32;
     const finalW = Math.min(config.openWidth, maxW);
     popup.style.width = `${finalW}px`;
 
-    // 纵向最大高度
+    // 计算left：可视视口右边 - 弹窗宽度 - 24px边距
+    const leftPos = availWidth - finalW - 24;
+    popup.style.left = `${leftPos}px`;
+    popup.style.right = "auto"; // 关闭css的right，完全交给left控制
+
+    // 纵向高度
     const maxH = Math.min(config.openHeight, availHeight - 10);
     popup.style.maxHeight = `${Math.max(220, maxH)}px`;
+    popup.style.bottom = "90px";
   }
 
-  // 监听visualViewport尺寸变化，iOS软键盘优先触发这个
+  // 监听visualViewport尺寸变化
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize', setPopupViewportSize);
   }else{
