@@ -150,7 +150,7 @@
     popup.style.width = `${finalW}px`;
 
     // 计算left：可视视口右边 - 弹窗宽度 - 24px边距
-    const leftPos = availWidth - finalW - 32;
+    const leftPos = availWidth - finalW - 24;
     popup.style.left = `${leftPos}px`;
     popup.style.right = "auto"; // 关闭css的right，完全交给left控制
 
