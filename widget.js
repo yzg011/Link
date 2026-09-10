@@ -155,7 +155,7 @@
     popup.style.width = `${finalW}px`;
 
     // 纵向最大高度
-    const maxH = Math.min(config.openHeight, availHeight - 100);
+    const maxH = Math.min(config.openHeight, availHeight - 10);
     popup.style.maxHeight = `${Math.max(220, maxH)}px`;
   }
 
