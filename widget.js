@@ -16,6 +16,7 @@
   let offset = 0;
   let isPolling = false;
   let pollingActive = false;
+  let isSending = false; // ✅ 发送锁：标记是否正在发送
 
   // 注入CSS
   const style = document.createElement("style");
@@ -99,6 +100,7 @@
     }
     #tgchat-input::placeholder{color:rgba(255,255,255,0.45);}
     #tgchat-send{padding:0 16px;background:${config.themeColor};border:none;border-radius:8px;cursor:pointer;color:#000;}
+    #tgchat-send:disabled{opacity:0.5;cursor:not-allowed;} /* 发送中置灰按钮 */
     .tgchat-footer{text-align:center;font-size:12px;color:rgba(255,255,255,0.35);padding:4px 6px;background:#0e1621;}
   `;
   document.head.appendChild(style);
@@ -210,8 +212,12 @@
     pollingActive = false;
   });
 
-  //发送消息
+  //发送消息（增加发送锁，防止重复提交）
   async function sendToTelegram(text){
+    if(isSending) return; // 如果正在发送，直接拒绝重复请求
+    isSending = true;
+    sendBtn.disabled = true; // 按钮置灰不可点击
+
     try{
       const res = await fetch(config.tgBotUrl,{
         method:"POST",
@@ -228,6 +234,9 @@
     }catch(e){
       console.error("send error",e);
       alert("请求异常");
+    }finally{
+      isSending = false; // 无论成功失败，都解锁
+      sendBtn.disabled = false;
     }
   }
 
@@ -261,7 +270,11 @@
     if(v) sendToTelegram(v);
   };
   msgInput.onkeydown = (e)=>{
-    if(e.key === "Enter") sendBtn.click();
+    if(e.key === "Enter") {
+      e.preventDefault(); // 阻止原生回车默认行为
+      const v = msgInput.value.trim();
+      if(v) sendToTelegram(v);
+    }
   };
 
 })();
