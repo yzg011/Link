@@ -68,7 +68,7 @@
       bottom:90px;
       right:24px;
       width:${config.openWidth}px;
-      max-width: calc(100vw - 32px);
+      max-width: calc(100vw - 40px);
       max-height:${config.openHeight}px;
       background:#0e1621;
       border-radius:12px;
