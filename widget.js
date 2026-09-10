@@ -68,7 +68,7 @@
       position:absolute;
       bottom:90px;
       width:${config.openWidth}px;
-      max-width: calc(100vw - 38px);
+      max-width: calc(100vw - 32px);
       background:#0e1621;
       border-radius:12px;
       box-shadow:0 4px 24px rgba(0,0,0,0.4);
@@ -146,7 +146,7 @@
     const scale = viewport.scale || 1;
 
     // 最大可用宽度
-    const maxW = availWidth - 38;
+    const maxW = availWidth - 32;
     const finalW = Math.min(config.openWidth, maxW);
     popup.style.width = `${finalW}px`;
 
