@@ -68,7 +68,7 @@
       position:absolute;
       bottom:90px;
       width:${config.openWidth}px;
-      max-width: calc(100vw - 24px);
+      max-width: calc(100vw - 32px);
       background:#0e1621;
       border-radius:12px;
       box-shadow:0 4px 24px rgba(0,0,0,0.4);
@@ -145,12 +145,12 @@
     const scale = viewport.scale || 1;
 
     // 最大可用宽度
-    const maxW = availWidth - 24;
+    const maxW = availWidth - 32;
     const finalW = Math.min(config.openWidth, maxW);
     popup.style.width = `${finalW}px`;
 
     // 计算left：可视视口右边 - 弹窗宽度 - 24px边距
-    const leftPos = availWidth - finalW - 24;
+    const leftPos = availWidth - finalW - 32;
     popup.style.left = `${leftPos}px`;
     popup.style.right = "auto"; // 关闭css的right，完全交给left控制
 
@@ -162,7 +162,7 @@
     }else{
       targetHeight = availHeight - 90;
     }
-    popup.style.maxHeight = `${Math.max(220, targetHeight)}px`;
+    popup.style.maxHeight = `${Math.max(520, targetHeight)}px`;
     popup.style.bottom = "90px";
   }
 
