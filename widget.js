@@ -7,7 +7,7 @@
     chatId: Number(scriptEl.dataset.chatId) || 0,
     themeColor: scriptEl.dataset.themeColor || "#22d3ee",
     openWidth: parseInt(scriptEl.dataset.openWidth || "360", 10),
-    openHeight: parseInt(scriptEl.dataset.openHeight || "620", 10),
+    openHeight: parseInt(scriptEl.dataset.openHeight || "620", 10), // 修改默认值
     welcome: scriptEl.dataset.welcome || "Hello!",
     popupTitle: scriptEl.dataset.popupTitle || "TG聊天",
     pollDelay: parseInt(scriptEl.dataset.pollDelay || "1200",10),
@@ -69,7 +69,6 @@
       bottom:90px;
       width:${config.openWidth}px;
       max-width: calc(100vw - 32px);
-      max-height:${config.openHeight}px;
       background:#0e1621;
       border-radius:12px;
       box-shadow:0 4px 24px rgba(0,0,0,0.4);
@@ -155,9 +154,15 @@
     popup.style.left = `${leftPos}px`;
     popup.style.right = "auto"; // 关闭css的right，完全交给left控制
 
-    // 纵向高度
-    const maxH = Math.min(config.openHeight, availHeight - 10);
-    popup.style.maxHeight = `${Math.max(220, maxH)}px`;
+    // 纵向高度逻辑：PC不超过openHeight，手机直接占满屏幕减去底部90px
+    let targetHeight;
+    // 如果屏幕很高(PC桌面)，使用预设openHeight；手机屏幕小，直接占满可用高度
+    if(availHeight > config.openHeight){
+      targetHeight = config.openHeight;
+    }else{
+      targetHeight = availHeight - 90;
+    }
+    popup.style.maxHeight = `${Math.max(220, targetHeight)}px`;
     popup.style.bottom = "90px";
   }
 
