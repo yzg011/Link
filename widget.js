@@ -7,7 +7,7 @@
     chatId: Number(scriptEl.dataset.chatId) || 0,
     themeColor: scriptEl.dataset.themeColor || "#22d3ee",
     openWidth: parseInt(scriptEl.dataset.openWidth || "360", 10),
-    openHeight: parseInt(scriptEl.dataset.openHeight || "620", 10), // 修改默认值
+    openHeight: parseInt(scriptEl.dataset.openHeight || "700", 10), // 修改默认值
     welcome: scriptEl.dataset.welcome || "Hello!",
     popupTitle: scriptEl.dataset.popupTitle || "TG聊天",
     pollDelay: parseInt(scriptEl.dataset.pollDelay || "1200",10),
@@ -162,7 +162,7 @@
     }else{
       targetHeight = availHeight - 90;
     }
-    popup.style.maxHeight = `${Math.max(520, targetHeight)}px`;
+    popup.style.maxHeight = `${Math.max(600, targetHeight)}px`;
     popup.style.bottom = "90px";
   }
 
