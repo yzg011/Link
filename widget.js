@@ -4,10 +4,11 @@
   const config = {
     tgBotUrl: scriptEl.dataset.tgBotUrl || "",
     tgGetUrl: scriptEl.dataset.tgGetUrl || "",
+    fileApiBase: scriptEl.dataset.fileApiBase || "", 
     chatId: Number(scriptEl.dataset.chatId) || 0,
     themeColor: scriptEl.dataset.themeColor || "#22d3ee",
     openWidth: parseInt(scriptEl.dataset.openWidth || "360", 10),
-    openHeight: parseInt(scriptEl.dataset.openHeight || "700", 10), // 修改默认值
+    openHeight: parseInt(scriptEl.dataset.openHeight || "700",10),
     welcome: scriptEl.dataset.welcome || "Hello!",
     popupTitle: scriptEl.dataset.popupTitle || "TG聊天",
     pollDelay: parseInt(scriptEl.dataset.pollDelay || "1200",10),
@@ -88,7 +89,14 @@
     .tgchat-text{word-break:break-word;font-size:15px;line-height:1.45;padding-right:48px;}
     .tgchat-time{position:absolute;right:12px;bottom:6px;font-size:11px;color:rgba(255,255,255,0.35);}
     .tgchat-bubble-user .tgchat-time{color:rgba(0,0,0,0.45);}
-    #tgchat-input-area{display:flex;padding:10px;border-top:1px solid rgba(255,255,255,0.08);gap:8px;background:#0e1621;}
+    #tgchat-input-area{display:flex;padding:10px;border-top:1px solid rgba(255,255,255,0.08);gap:8px;background:#0e1621;align-items:center;}
+    /* 文件上传按钮 */
+    #tgchat-upload-btn{
+      width:36px;height:36px;border-radius:8px;border:none;
+      background:#182533;color:#fff;font-size:18px;cursor:pointer;
+      flex:0 0 36px;
+    }
+    #tgchat-file-input{display:none;}
     /* ===== 核心修复 input字体强制16px，阻止iOS自动缩放页面 ===== */
     #tgchat-input{
       flex:1;
@@ -100,12 +108,14 @@
     }
     #tgchat-input::placeholder{color:rgba(255,255,255,0.45);}
     #tgchat-send{padding:0 16px;background:${config.themeColor};border:none;border-radius:8px;cursor:pointer;color:#000;}
-    #tgchat-send:disabled{opacity:0.5;cursor:not-allowed;} /* 发送中置灰按钮 */
+    #tgchat-send:disabled, #tgchat-upload-btn:disabled{opacity:0.5;cursor:not-allowed;}
     .tgchat-footer{text-align:center;font-size:12px;color:rgba(255,255,255,0.35);padding:4px 6px;background:#0e1621;}
+    /* 聊天内图片 */
+    .tgchat-img-preview{max-width:100%;border-radius:10px;margin-bottom:4px;display:block;}
   `;
   document.head.appendChild(style);
 
-  // 构建DOM：增加外层wrap容器
+  // 构建DOM：增加外层wrap容器 + 文件上传input
   const widgetIcon = document.createElement("button");
   widgetIcon.id = "tgchat-widget-icon";
   widgetIcon.textContent = "💬";
@@ -123,6 +133,8 @@
     <div id="tgchat-messages"></div>
     <div class="tgchat-footer">Powered by Telegram Bot</div>
     <div id="tgchat-input-area">
+      <button id="tgchat-upload-btn">📎</button>
+      <input type="file" id="tgchat-file-input" />
       <input id="tgchat-input" placeholder="输入消息..." />
       <button id="tgchat-send">发送</button>
     </div>
@@ -137,6 +149,8 @@
   const msgInput = popup.querySelector("#tgchat-input");
   const sendBtn = popup.querySelector("#tgchat-send");
   const msgBox = popup.querySelector("#tgchat-messages");
+  const uploadBtn = popup.querySelector("#tgchat-upload-btn");
+  const fileInput = popup.querySelector("#tgchat-file-input");
 
   // 【核心修复】根据visualViewport计算弹窗位置，解决页面缩放偏移
   function setPopupViewportSize() {
@@ -186,17 +200,26 @@
     return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
   }
 
-  // 添加消息
-  function addMessage(text, isUser=true, timestamp=null){
+  // 添加消息（支持图片预览）
+  function addMessage(content, isUser=true, timestamp=null, isImage=false){
     const div = document.createElement("div");
     div.className = "tgchat-bubble " + (isUser ? "tgchat-bubble-user":"tgchat-bubble-server");
-    const t = document.createElement("div");
-    t.className = "tgchat-text";
-    t.textContent = text;
+
+    if(isImage){
+      const img = document.createElement("img");
+      img.className = "tgchat-img-preview";
+      img.src = content;
+      div.appendChild(img);
+    }else{
+      const t = document.createElement("div");
+      t.className = "tgchat-text";
+      t.textContent = content;
+      div.append(t);
+    }
     const ti = document.createElement("div");
     ti.className = "tgchat-time";
     ti.textContent = timestamp ? formatTime(timestamp) : getLocalTime();
-    div.append(t,ti);
+    div.append(ti);
     msgBox.appendChild(div);
     msgBox.scrollTop = msgBox.scrollHeight;
   }
@@ -218,11 +241,12 @@
     pollingActive = false;
   });
 
-  //发送消息（增加发送锁，防止重复提交）
+  //发送文字消息
   async function sendToTelegram(text){
-    if(isSending) return; // 如果正在发送，直接拒绝重复请求
+    if(isSending) return;
     isSending = true;
-    sendBtn.disabled = true; // 按钮置灰不可点击
+    sendBtn.disabled = true;
+    uploadBtn.disabled = true;
 
     try{
       const res = await fetch(config.tgBotUrl,{
@@ -241,10 +265,67 @@
       console.error("send error",e);
       alert("请求异常");
     }finally{
-      isSending = false; // 无论成功失败，都解锁
+      isSending = false;
       sendBtn.disabled = false;
+      uploadBtn.disabled = false;
     }
   }
+
+  // ✅ 修改后的发送文件函数，适配 data-file-api-base="https://xxx.workers.dev/sendDocument"
+  async function sendFileToTG(file) {
+    if(isSending) return;
+    isSending = true;
+    sendBtn.disabled = true;
+    uploadBtn.disabled = true;
+    fileInput.value = "";
+
+    try {
+      const formData = new FormData();
+      formData.append("chat_id", config.chatId);
+
+      let uploadUrl;
+      // 图片：把 /sendDocument 替换成 /sendPhoto
+      if(file.type.startsWith("image/")){
+        uploadUrl = config.fileApiBase.replace("/sendDocument","/sendPhoto");
+        formData.append("photo", file);
+      }else{
+        // 视频/其他文件直接使用配置好的地址
+        uploadUrl = config.fileApiBase;
+        formData.append("document", file);
+      }
+
+      const res = await fetch(uploadUrl, {
+        method: "POST",
+        body: formData
+      });
+      const data = await res.json();
+      if(data.ok){
+        // 本地预览图片
+        if(file.type.startsWith("image/")){
+          const previewUrl = URL.createObjectURL(file);
+          addMessage(previewUrl, true, null, true);
+        }else{
+          addMessage(`📄 ${file.name}`, true);
+        }
+      }else{
+        alert("文件发送失败:" + JSON.stringify(data));
+      }
+    } catch(e) {
+      console.error("file upload err",e);
+      alert("文件上传请求异常");
+    }finally{
+      isSending = false;
+      sendBtn.disabled = false;
+      uploadBtn.disabled = false;
+    }
+  }
+
+  // 文件选择触发
+  uploadBtn.onclick = ()=> fileInput.click();
+  fileInput.onchange = async (e)=>{
+    const file = e.target.files[0];
+    if(file) await sendFileToTG(file);
+  };
 
   //轮询
   async function runPollLoop(){
@@ -264,10 +345,10 @@
     }catch(err){
       console.warn("poll error",err);
     }finally{
-      isPolling = false;
-      if(pollingActive){
-        setTimeout(runPollLoop, config.pollDelay);
-      }
+        isPolling = false;
+        if(pollingActive){
+          setTimeout(runPollLoop, config.pollDelay);
+        }
     }
   }
 
@@ -277,7 +358,7 @@
   };
   msgInput.onkeydown = (e)=>{
     if(e.key === "Enter") {
-      e.preventDefault(); // 阻止原生回车默认行为
+      e.preventDefault();
       const v = msgInput.value.trim();
       if(v) sendToTelegram(v);
     }
