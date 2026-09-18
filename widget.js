@@ -1,4 +1,4 @@
-// 版本1.0
+  // 版本2.0
 
 (function () {
   const scriptEl = document.currentScript;
@@ -6,8 +6,7 @@
   const config = {
     tgBotUrl: scriptEl.dataset.tgBotUrl || "",
     tgGetUrl: scriptEl.dataset.tgGetUrl || "",
-    fileApiBase: scriptEl.dataset.fileApiBase || "",
-    getFileUrl: scriptEl.dataset.getFileUrl || "", // 新增：getFile接口地址
+    fileApiBase: scriptEl.dataset.fileApiBase || "", 
     chatId: Number(scriptEl.dataset.chatId) || 0,
     themeColor: scriptEl.dataset.themeColor || "#22d3ee",
     openWidth: parseInt(scriptEl.dataset.openWidth || "360", 10),
@@ -115,8 +114,6 @@
     .tgchat-footer{text-align:center;font-size:12px;color:rgba(255,255,255,0.35);padding:4px 6px;background:#0e1621;}
     /* 聊天内图片 */
     .tgchat-img-preview{max-width:100%;border-radius:10px;margin-bottom:4px;display:block;}
-    /* 聊天内视频 */
-    .tgchat-video-preview{max-width:100%;border-radius:10px;margin-bottom:4px;display:block;}
   `;
   document.head.appendChild(style);
 
@@ -205,23 +202,16 @@
     return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
   }
 
-  // ========== 修改addMessage，支持 文字 / 图片 / 视频 ==========
-  function addMessage(content, isUser=true, timestamp=null, msgType="text"){
+  // 添加消息（支持图片预览）
+  function addMessage(content, isUser=true, timestamp=null, isImage=false){
     const div = document.createElement("div");
     div.className = "tgchat-bubble " + (isUser ? "tgchat-bubble-user":"tgchat-bubble-server");
 
-    if(msgType === "image"){
+    if(isImage){
       const img = document.createElement("img");
       img.className = "tgchat-img-preview";
       img.src = content;
-      img.loading="lazy";
       div.appendChild(img);
-    }else if(msgType === "video"){
-      const video = document.createElement("video");
-      video.className = "tgchat-video-preview";
-      video.src = content;
-      video.controls = true;
-      div.appendChild(video);
     }else{
       const t = document.createElement("div");
       t.className = "tgchat-text";
@@ -235,7 +225,7 @@
     msgBox.appendChild(div);
     msgBox.scrollTop = msgBox.scrollHeight;
   }
-  addMessage(config.welcome, false, null, "text");
+  addMessage(config.welcome, false);
 
   // 切换弹窗
   widgetIcon.addEventListener("click", ()=>{
@@ -268,7 +258,7 @@
       });
       const data = await res.json();
       if(data.ok){
-        addMessage(text, true, null, "text");
+        addMessage(text, true);
         msgInput.value = "";
       }else{
         alert("发送失败:"+JSON.stringify(data));
@@ -315,9 +305,9 @@
         // 本地预览图片
         if(file.type.startsWith("image/")){
           const previewUrl = URL.createObjectURL(file);
-          addMessage(previewUrl, true, null, "image");
+          addMessage(previewUrl, true, null, true);
         }else{
-          addMessage(`📄 ${file.name}`, true, null, "text");
+          addMessage(`📄 ${file.name}`, true);
         }
       }else{
         alert("文件发送失败:" + JSON.stringify(data));
@@ -339,24 +329,7 @@
     if(file) await sendFileToTG(file);
   };
 
-  // ========== 新增：通过file_id获取TG图片/视频预览地址 ==========
-  async function getTgFileUrl(fileId){
-    if(!config.getFileUrl) return null;
-    const res = await fetch(config.getFileUrl, {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({file_id:fileId})
-    });
-    const json = await res.json();
-    if(json.ok){
-      const filePath = json.result.file_path;
-      // 把 /getFile 替换成 /file 得到预览资源地址
-      return `${config.getFileUrl.replace("/getFile","/file")}/${filePath}`;
-    }
-    return null;
-  }
-
-  // ========== 重写轮询，支持接收图片、视频 ==========
+  //轮询
   async function runPollLoop(){
     if(!pollingActive || isPolling) return;
     isPolling = true;
@@ -366,22 +339,8 @@
       if(json.ok && Array.isArray(json.result)){
         for(const u of json.result){
           const m = u.message;
-          if(!m) continue;
-          // 文字消息
-          if(m.text){
-            addMessage(m.text,false,m.date,"text");
-          }
-          // 图片消息，取最大尺寸图片
-          else if(m.photo && m.photo.length>0){
-            const bestPhoto = m.photo[m.photo.length-1];
-            const fileUrl = await getTgFileUrl(bestPhoto.file_id);
-            if(fileUrl) addMessage(fileUrl,false,m.date,"image");
-          }
-          // 视频消息
-          else if(m.video){
-            const fileUrl = await getTgFileUrl(m.video.file_id);
-            if(fileUrl) addMessage(fileUrl,false,m.date,"video");
-          }
+          if(!m||!m.text) continue;
+          addMessage(m.text,false,m.date);
           offset = u.update_id + 1;
         }
       }
