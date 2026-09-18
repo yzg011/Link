@@ -5,21 +5,20 @@
     tgBotUrl: scriptEl.dataset.tgBotUrl || "",
     tgGetUrl: scriptEl.dataset.tgGetUrl || "",
     fileApiBase: scriptEl.dataset.fileApiBase || "",
-    getFileUrl: scriptEl.dataset.getFileUrl || "",
+    getFileUrl: scriptEl.dataset.getFileUrl || "", // 新增：getFile接口地址
     chatId: Number(scriptEl.dataset.chatId) || 0,
     themeColor: scriptEl.dataset.themeColor || "#22d3ee",
     openWidth: parseInt(scriptEl.dataset.openWidth || "360", 10),
     openHeight: parseInt(scriptEl.dataset.openHeight || "700",10),
     welcome: scriptEl.dataset.welcome || "Hello!",
     popupTitle: scriptEl.dataset.popupTitle || "TG聊天",
-    pollDelay: parseInt(scriptEl.dataset.pollDelay || "1500",10),
+    pollDelay: parseInt(scriptEl.dataset.pollDelay || "1200",10),
   };
 
   let offset = 0;
   let isPolling = false;
   let pollingActive = false;
-  let isSending = false;
-  let abortController = null;
+  let isSending = false; // ✅ 发送锁：标记是否正在发送
 
   // 注入CSS
   const style = document.createElement("style");
@@ -55,6 +54,7 @@
     }
     #tgchat-widget-icon:hover{transform:scale(1.08);}
 
+    /* 外层fixed遮罩容器 */
     #tgchat-popup-wrap {
       display:none;
       position:fixed;
@@ -65,6 +65,7 @@
     #tgchat-popup-wrap.open {
       display:block;
     }
+    /* 内层弹窗：取消固定right，JS动态控制left、bottom */
     #tgchat-popup{
       position:absolute;
       bottom:90px;
@@ -90,12 +91,14 @@
     .tgchat-time{position:absolute;right:12px;bottom:6px;font-size:11px;color:rgba(255,255,255,0.35);}
     .tgchat-bubble-user .tgchat-time{color:rgba(0,0,0,0.45);}
     #tgchat-input-area{display:flex;padding:10px;border-top:1px solid rgba(255,255,255,0.08);gap:8px;background:#0e1621;align-items:center;}
+    /* 文件上传按钮 */
     #tgchat-upload-btn{
       width:36px;height:36px;border-radius:8px;border:none;
       background:#182533;color:#fff;font-size:18px;cursor:pointer;
       flex:0 0 36px;
     }
     #tgchat-file-input{display:none;}
+    /* ===== 核心修复 input字体强制16px，阻止iOS自动缩放页面 ===== */
     #tgchat-input{
       flex:1;
       padding:10px 12px;
@@ -108,11 +111,14 @@
     #tgchat-send{padding:0 16px;background:${config.themeColor};border:none;border-radius:8px;cursor:pointer;color:#000;}
     #tgchat-send:disabled, #tgchat-upload-btn:disabled{opacity:0.5;cursor:not-allowed;}
     .tgchat-footer{text-align:center;font-size:12px;color:rgba(255,255,255,0.35);padding:4px 6px;background:#0e1621;}
+    /* 聊天内图片 */
     .tgchat-img-preview{max-width:100%;border-radius:10px;margin-bottom:4px;display:block;}
+    /* 聊天内视频 */
     .tgchat-video-preview{max-width:100%;border-radius:10px;margin-bottom:4px;display:block;}
   `;
   document.head.appendChild(style);
 
+  // 构建DOM：增加外层wrap容器 + 文件上传input
   const widgetIcon = document.createElement("button");
   widgetIcon.id = "tgchat-widget-icon";
   widgetIcon.textContent = "💬";
@@ -141,6 +147,7 @@
   document.body.appendChild(widgetIcon);
   document.body.appendChild(popupWrap);
 
+  // 获取dom引用
   const closeBtn = popup.querySelector("#tgchat-close");
   const msgInput = popup.querySelector("#tgchat-input");
   const sendBtn = popup.querySelector("#tgchat-send");
@@ -148,19 +155,26 @@
   const uploadBtn = popup.querySelector("#tgchat-upload-btn");
   const fileInput = popup.querySelector("#tgchat-file-input");
 
+  // 【核心修复】根据visualViewport计算弹窗位置，解决页面缩放偏移
   function setPopupViewportSize() {
     const viewport = window.visualViewport || {width: window.innerWidth, height: window.innerHeight, scale:1, offsetLeft:0};
     const availWidth = viewport.width;
     const availHeight = viewport.height;
+    const scale = viewport.scale || 1;
 
+    // 最大可用宽度
     const maxW = availWidth - 32;
     const finalW = Math.min(config.openWidth, maxW);
     popup.style.width = `${finalW}px`;
+
+    // 计算left：可视视口右边 - 弹窗宽度 - 24px边距
     const leftPos = availWidth - finalW - 24;
     popup.style.left = `${leftPos}px`;
-    popup.style.right = "auto";
+    popup.style.right = "auto"; // 关闭css的right，完全交给left控制
 
+    // 纵向高度逻辑：PC不超过openHeight，手机直接占满屏幕减去底部90px
     let targetHeight;
+    // 如果屏幕很高(PC桌面)，使用预设openHeight；手机屏幕小，直接占满可用高度
     if(availHeight > config.openHeight){
       targetHeight = config.openHeight;
     }else{
@@ -170,6 +184,7 @@
     popup.style.bottom = "90px";
   }
 
+  // 监听visualViewport尺寸变化
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize', setPopupViewportSize);
   }else{
@@ -178,6 +193,7 @@
   msgInput.addEventListener('focus', setPopupViewportSize);
   msgInput.addEventListener('blur', setPopupViewportSize);
 
+  // 时间格式化
   function formatTime(timestamp) {
     const d = new Date(timestamp * 1000);
     return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
@@ -187,6 +203,7 @@
     return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
   }
 
+  // ========== 修改addMessage，支持 文字 / 图片 / 视频，图片增加加载失败兜底 ==========
   function addMessage(content, isUser=true, timestamp=null, msgType="text"){
     const div = document.createElement("div");
     div.className = "tgchat-bubble " + (isUser ? "tgchat-bubble-user":"tgchat-bubble-server");
@@ -221,6 +238,7 @@
   }
   addMessage(config.welcome, false, null, "text");
 
+  // 切换弹窗
   widgetIcon.addEventListener("click", ()=>{
     popupWrap.classList.toggle("open");
     if(popupWrap.classList.contains("open")){
@@ -229,15 +247,14 @@
       runPollLoop();
     }else{
       pollingActive = false;
-      if(abortController) abortController.abort();
     }
   });
   closeBtn.addEventListener("click", ()=>{
     popupWrap.classList.remove("open");
     pollingActive = false;
-    if(abortController) abortController.abort();
   });
 
+  //发送文字消息
   async function sendToTelegram(text){
     if(isSending) return;
     isSending = true;
@@ -267,6 +284,7 @@
     }
   }
 
+  // ✅ 修改后的发送文件函数，适配 data-file-api-base="https://xxx.workers.dev/sendDocument"
   async function sendFileToTG(file) {
     if(isSending) return;
     isSending = true;
@@ -279,10 +297,12 @@
       formData.append("chat_id", config.chatId);
 
       let uploadUrl;
+      // 图片：把 /sendDocument 替换成 /sendPhoto
       if(file.type.startsWith("image/")){
         uploadUrl = config.fileApiBase.replace("/sendDocument","/sendPhoto");
         formData.append("photo", file);
       }else{
+        // 视频/其他文件直接使用配置好的地址
         uploadUrl = config.fileApiBase;
         formData.append("document", file);
       }
@@ -293,6 +313,7 @@
       });
       const data = await res.json();
       if(data.ok){
+        // 本地预览图片
         if(file.type.startsWith("image/")){
           const previewUrl = URL.createObjectURL(file);
           addMessage(previewUrl, true, null, "image");
@@ -312,12 +333,14 @@
     }
   }
 
+  // 文件选择触发
   uploadBtn.onclick = ()=> fileInput.click();
   fileInput.onchange = async (e)=>{
     const file = e.target.files[0];
     if(file) await sendFileToTG(file);
   };
 
+  // ========== 新增：通过file_id获取TG图片/视频预览地址 ==========
   async function getTgFileUrl(fileId){
     if(!config.getFileUrl) return null;
     try{
@@ -330,71 +353,81 @@
       console.log("getFile返回：",json);
       if(json.ok){
         const filePath = json.result.file_path;
+        // 把 /getFile 替换成 /file 得到预览资源地址
         const previewUrl = `${config.getFileUrl.replace("/getFile","/file")}/${filePath}`;
         console.log("预览地址：",previewUrl);
         return previewUrl;
       }
     }catch(e){
-      console.error("getFile接口失败",e);
+      console.error("getFile接口请求失败",e);
     }
     return null;
   }
 
+  // ========== 重写轮询，修复for循环await问题，支持图片/视频/语音 ==========
   async function runPollLoop(){
     if(!pollingActive || isPolling) return;
-    if(abortController) abortController.abort();
-
     isPolling = true;
-    abortController = new AbortController();
-    const signal = abortController.signal;
-
     try{
-      const res = await fetch(`${config.tgGetUrl}?offset=${offset}&timeout=5`, {signal});
+      const res = await fetch(`${config.tgGetUrl}?offset=${offset}&timeout=5`);
       const json = await res.json();
       console.log("轮询原始数据：",json);
       if(json.ok && Array.isArray(json.result)){
+        // 使用for...of + await，顺序串行处理消息
         for(const u of json.result){
           const m = u.message;
           if(!m){
             offset = u.update_id +1;
             continue;
           }
+          // 过滤自己发给机器人的消息（避免重复渲染）
+          if(m.from?.id === config.chatId){
+            offset = u.update_id +1;
+            continue;
+          }
           try{
+            // 文字消息
             if(m.text){
               addMessage(m.text,false,m.date,"text");
-            }else if(m.photo && m.photo.length>0){
+            }
+            // 图片消息，取最大尺寸图片
+            else if(m.photo && m.photo.length>0){
               const bestPhoto = m.photo[m.photo.length-1];
               const fileUrl = await getTgFileUrl(bestPhoto.file_id);
               if(fileUrl){
                 addMessage(fileUrl,false,m.date,"image");
               }else{
-                addMessage("[图片加载失败]",false,m.date,"text");
+                addMessage("[图片，加载失败]",false,m.date,"text");
               }
-            }else if(m.video){
+            }
+            // 视频消息
+            else if(m.video){
               const fileUrl = await getTgFileUrl(m.video.file_id);
               if(fileUrl){
                 addMessage(fileUrl,false,m.date,"video");
               }else{
-                addMessage("[视频加载失败]",false,m.date,"text");
+                addMessage("[视频，加载失败]",false,m.date,"text");
               }
-            }else if(m.voice){
+            }
+            // 语音消息兜底
+            else if(m.voice){
               addMessage("[语音消息，暂不支持播放]",false,m.date,"text");
-            }else{
+            }
+            // 其他未知类型
+            else{
               addMessage("[未知消息类型]",false,m.date,"text");
             }
           }catch(msgErr){
             console.error("单条消息渲染异常：",msgErr);
             addMessage("[消息解析失败]",false,m.date,"text");
           }
+          // 本条消息处理完毕，更新offset
           offset = u.update_id + 1;
         }
       }
     }catch(err){
-      if(err.name !== "AbortError"){
-        console.warn("轮询请求异常：",err);
-      }
+      console.warn("轮询请求异常：",err);
     }finally{
-        abortController = null;
         isPolling = false;
         if(pollingActive){
           setTimeout(runPollLoop, config.pollDelay);
