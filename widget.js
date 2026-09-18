@@ -1,10 +1,10 @@
-  // 版本3.0
-
+// 版本3.0 【适配你的script配置：data-get-file-url】
 (function () {
   const scriptEl = document.currentScript;
-  // 读取data配置
+  // 读取data配置（完全匹配你script上的属性）
   const config = {
-    tgBotUrl: scriptEl.dataset.tgBotUrl || "",
+    tgBotUrl: scriptEl.dataset.tgBotUrl || "", // data-tg-bot-url = sendMessage
+    getFileUrl: scriptEl.dataset.getFileUrl || "", // data-get-file-url = getFile
     tgGetUrl: scriptEl.dataset.tgGetUrl || "",
     fileApiBase: scriptEl.dataset.fileApiBase || "", 
     chatId: Number(scriptEl.dataset.chatId) || 0,
@@ -202,16 +202,34 @@
     return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
   }
 
-  // 添加消息（支持图片预览）
-  function addMessage(content, isUser=true, timestamp=null, isImage=false){
+  // 添加消息（支持 text / image / video / file）
+  function addMessage(content, isUser=true, timestamp=null, type="text"){
     const div = document.createElement("div");
     div.className = "tgchat-bubble " + (isUser ? "tgchat-bubble-user":"tgchat-bubble-server");
 
-    if(isImage){
+    if(type === "image"){
       const img = document.createElement("img");
       img.className = "tgchat-img-preview";
       img.src = content;
+      img.style.maxWidth = "100%";
       div.appendChild(img);
+    }else if(type === "video"){
+      const video = document.createElement("video");
+      video.className = "tgchat-img-preview";
+      video.src = content;
+      video.controls = true;
+      video.style.maxWidth = "100%";
+      div.appendChild(video);
+    }else if(type === "file"){
+      const t = document.createElement("div");
+      t.className = "tgchat-text";
+      const a = document.createElement("a");
+      a.href = content.url;
+      a.target="_blank";
+      a.style.color="#22d3ee";
+      a.textContent = `📄 ${content.name}`;
+      t.appendChild(a);
+      div.append(t);
     }else{
       const t = document.createElement("div");
       t.className = "tgchat-text";
@@ -243,7 +261,7 @@
     pollingActive = false;
   });
 
-  //发送文字消息
+  //发送文字消息（tgBotUrl = sendMessage）
   async function sendToTelegram(text){
     if(isSending) return;
     isSending = true;
@@ -258,7 +276,7 @@
       });
       const data = await res.json();
       if(data.ok){
-        addMessage(text, true);
+        addMessage(text, true, null, "text");
         msgInput.value = "";
       }else{
         alert("发送失败:"+JSON.stringify(data));
@@ -305,9 +323,9 @@
         // 本地预览图片
         if(file.type.startsWith("image/")){
           const previewUrl = URL.createObjectURL(file);
-          addMessage(previewUrl, true, null, true);
+          addMessage(previewUrl, true, null, "image");
         }else{
-          addMessage(`📄 ${file.name}`, true);
+          addMessage(`📄 ${file.name}`, true, null, "text");
         }
       }else{
         alert("文件发送失败:" + JSON.stringify(data));
@@ -353,42 +371,42 @@ async function runPollLoop(){
                 let photoList = msg.photo || (msg.forward_from && msg.forward_from.photo);
                 if(photoList){
                     const bestPhoto = photoList.at(-1);
-                    const fileRes = await fetch(config.tgBotUrl,{
+                    const fileRes = await fetch(config.getFileUrl,{
                         method:"POST",
                         headers:{"Content-Type":"application/json"},
                         body:JSON.stringify({file_id: bestPhoto.file_id})
                     });
                     const fJson = await fileRes.json();
                     if(fJson.ok){
-                        const imgUrl = `${config.tgBotUrl.replace("/getFile","/file")}/${fJson.result.file_path}`;
-                        addMessage(imgUrl, false, msg.date, "img");
+                        const imgUrl = `${config.getFileUrl.replace("/getFile","/file")}/${fJson.result.file_path}`;
+                        addMessage(imgUrl, false, msg.date, "image");
                     }
                 }
                 // ✅兼容转发视频
                 let videoInfo = msg.video || (msg.forward_from && msg.forward_from.video);
                 if(videoInfo && !photoList){
-                    const fileRes = await fetch(config.tgBotUrl,{
+                    const fileRes = await fetch(config.getFileUrl,{
                         method:"POST",
                         headers:{"Content-Type":"application/json"},
                         body:JSON.stringify({file_id: videoInfo.file_id})
                     });
                     const fJson = await fileRes.json();
                     if(fJson.ok){
-                        const vUrl = `${config.tgBotUrl.replace("/getFile","/file")}/${fJson.result.file_path}`;
+                        const vUrl = `${config.getFileUrl.replace("/getFile","/file")}/${fJson.result.file_path}`;
                         addMessage(vUrl, false, msg.date, "video");
                     }
                 }
                 // ✅兼容转发文件
                 let docInfo = msg.document || (msg.forward_from && msg.forward_from.document);
                 if(docInfo && !photoList && !videoInfo){
-                    const fileRes = await fetch(config.tgBotUrl,{
+                    const fileRes = await fetch(config.getFileUrl,{
                         method:"POST",
                         headers:{"Content-Type":"application/json"},
                         body:JSON.stringify({file_id: docInfo.file_id})
                     });
                     const fJson = await fileRes.json();
                     if(fJson.ok){
-                        const fileUrl = `${config.tgBotUrl.replace("/getFile","/file")}/${fJson.result.file_path}`;
+                        const fileUrl = `${config.getFileUrl.replace("/getFile","/file")}/${fJson.result.file_path}`;
                         addMessage({url:fileUrl, name:docInfo.file_name}, false, msg.date, "file");
                     }
                 }
