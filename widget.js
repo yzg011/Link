@@ -12,7 +12,7 @@
     openHeight: parseInt(scriptEl.dataset.openHeight || "700",10),
     welcome: scriptEl.dataset.welcome || "Hello!",
     popupTitle: scriptEl.dataset.popupTitle || "TG聊天",
-    pollDelay: parseInt(scriptEl.dataset.pollDelay || "1500",10), // 稍微拉长间隔降低压力
+    pollDelay: parseInt(scriptEl.dataset.pollDelay || "1500",10),
   };
 
   let offset = 0;
@@ -342,7 +342,6 @@
 
   async function runPollLoop(){
     if(!pollingActive || isPolling) return;
-    // 终止上一轮未完成请求
     if(abortController) abortController.abort();
 
     isPolling = true;
@@ -354,15 +353,9 @@
       const json = await res.json();
       console.log("轮询原始数据：",json);
       if(json.ok && Array.isArray(json.result)){
-        // 串行逐条处理消息，图片视频await走完getFile，不会中断
         for(const u of json.result){
           const m = u.message;
           if(!m){
-            offset = u.update_id +1;
-            continue;
-          }
-          // 过滤自己发的消息
-          if(m.from?.id === config.chatId){
             offset = u.update_id +1;
             continue;
           }
@@ -393,12 +386,10 @@
             console.error("单条消息渲染异常：",msgErr);
             addMessage("[消息解析失败]",false,m.date,"text");
           }
-          // 处理完一条，更新offset
           offset = u.update_id + 1;
         }
       }
     }catch(err){
-      // 主动abort的错误忽略，不打印
       if(err.name !== "AbortError"){
         console.warn("轮询请求异常：",err);
       }
