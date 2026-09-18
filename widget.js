@@ -1,4 +1,4 @@
-  // 版本2.5
+  // 版本3.0
 
 (function () {
   const scriptEl = document.currentScript;
@@ -334,7 +334,7 @@ async function runPollLoop(){
     if (!pollingActive || isPolling) return;
     isPolling = true;
     try {
-        const resp = await fetch(`${TG_GETUPDATES_URL}?offset=${offset}`);
+        const resp = await fetch(`${config.tgGetUrl}?offset=${offset}`);
         const json = await resp.json();
         console.log("poll result",json);
         if(json.ok && Array.isArray(json.result)){
@@ -353,42 +353,42 @@ async function runPollLoop(){
                 let photoList = msg.photo || (msg.forward_from && msg.forward_from.photo);
                 if(photoList){
                     const bestPhoto = photoList.at(-1);
-                    const fileRes = await fetch(TG_GETFILE_URL,{
+                    const fileRes = await fetch(config.tgBotUrl,{
                         method:"POST",
                         headers:{"Content-Type":"application/json"},
                         body:JSON.stringify({file_id: bestPhoto.file_id})
                     });
                     const fJson = await fileRes.json();
                     if(fJson.ok){
-                        const imgUrl = `${TG_GETFILE_URL.replace("/getFile","/file")}/${fJson.result.file_path}`;
+                        const imgUrl = `${config.tgBotUrl.replace("/getFile","/file")}/${fJson.result.file_path}`;
                         addMessage(imgUrl, false, msg.date, "img");
                     }
                 }
                 // ✅兼容转发视频
                 let videoInfo = msg.video || (msg.forward_from && msg.forward_from.video);
                 if(videoInfo && !photoList){
-                    const fileRes = await fetch(TG_GETFILE_URL,{
+                    const fileRes = await fetch(config.tgBotUrl,{
                         method:"POST",
                         headers:{"Content-Type":"application/json"},
                         body:JSON.stringify({file_id: videoInfo.file_id})
                     });
                     const fJson = await fileRes.json();
                     if(fJson.ok){
-                        const vUrl = `${TG_GETFILE_URL.replace("/getFile","/file")}/${fJson.result.file_path}`;
+                        const vUrl = `${config.tgBotUrl.replace("/getFile","/file")}/${fJson.result.file_path}`;
                         addMessage(vUrl, false, msg.date, "video");
                     }
                 }
                 // ✅兼容转发文件
                 let docInfo = msg.document || (msg.forward_from && msg.forward_from.document);
                 if(docInfo && !photoList && !videoInfo){
-                    const fileRes = await fetch(TG_GETFILE_URL,{
+                    const fileRes = await fetch(config.tgBotUrl,{
                         method:"POST",
                         headers:{"Content-Type":"application/json"},
                         body:JSON.stringify({file_id: docInfo.file_id})
                     });
                     const fJson = await fileRes.json();
                     if(fJson.ok){
-                        const fileUrl = `${TG_GETFILE_URL.replace("/getFile","/file")}/${fJson.result.file_path}`;
+                        const fileUrl = `${config.tgBotUrl.replace("/getFile","/file")}/${fJson.result.file_path}`;
                         addMessage({url:fileUrl, name:docInfo.file_name}, false, msg.date, "file");
                     }
                 }
@@ -401,7 +401,7 @@ async function runPollLoop(){
         isPolling = false;
         if(pollingActive){
             // 请求全部完成之后，再延时发起下一轮
-            setTimeout(runPollLoop, POLL_DELAY);
+            setTimeout(runPollLoop, config.pollDelay);
         }
     }
 }
