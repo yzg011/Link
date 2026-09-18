@@ -1,4 +1,4 @@
-  // 版本2.0
+  // 版本2.5
 
 (function () {
   const scriptEl = document.currentScript;
@@ -330,29 +330,81 @@
   };
 
   //轮询
-  async function runPollLoop(){
-    if(!pollingActive || isPolling) return;
+async function runPollLoop(){
+    if (!pollingActive || isPolling) return;
     isPolling = true;
-    try{
-      const res = await fetch(`${config.tgGetUrl}?offset=${offset}&timeout=5`);
-      const json = await res.json();
-      if(json.ok && Array.isArray(json.result)){
-        for(const u of json.result){
-          const m = u.message;
-          if(!m||!m.text) continue;
-          addMessage(m.text,false,m.date);
-          offset = u.update_id + 1;
+    try {
+        const resp = await fetch(`${TG_GETUPDATES_URL}?offset=${offset}`);
+        const json = await resp.json();
+        console.log("poll result",json);
+        if(json.ok && Array.isArray(json.result)){
+            for(const update of json.result){
+                // 兼容私聊message 和频道 channel_post
+                const msg = update.message || update.channel_post;
+                if(!msg){
+                    offset = update.update_id +1;
+                    continue;
+                }
+
+                if(msg.text){
+                    addMessage(msg.text, false, msg.date, "text");
+                }
+                // ✅兼容直接发送图片 以及转发图片（forward_from）
+                let photoList = msg.photo || (msg.forward_from && msg.forward_from.photo);
+                if(photoList){
+                    const bestPhoto = photoList.at(-1);
+                    const fileRes = await fetch(TG_GETFILE_URL,{
+                        method:"POST",
+                        headers:{"Content-Type":"application/json"},
+                        body:JSON.stringify({file_id: bestPhoto.file_id})
+                    });
+                    const fJson = await fileRes.json();
+                    if(fJson.ok){
+                        const imgUrl = `${TG_GETFILE_URL.replace("/getFile","/file")}/${fJson.result.file_path}`;
+                        addMessage(imgUrl, false, msg.date, "img");
+                    }
+                }
+                // ✅兼容转发视频
+                let videoInfo = msg.video || (msg.forward_from && msg.forward_from.video);
+                if(videoInfo && !photoList){
+                    const fileRes = await fetch(TG_GETFILE_URL,{
+                        method:"POST",
+                        headers:{"Content-Type":"application/json"},
+                        body:JSON.stringify({file_id: videoInfo.file_id})
+                    });
+                    const fJson = await fileRes.json();
+                    if(fJson.ok){
+                        const vUrl = `${TG_GETFILE_URL.replace("/getFile","/file")}/${fJson.result.file_path}`;
+                        addMessage(vUrl, false, msg.date, "video");
+                    }
+                }
+                // ✅兼容转发文件
+                let docInfo = msg.document || (msg.forward_from && msg.forward_from.document);
+                if(docInfo && !photoList && !videoInfo){
+                    const fileRes = await fetch(TG_GETFILE_URL,{
+                        method:"POST",
+                        headers:{"Content-Type":"application/json"},
+                        body:JSON.stringify({file_id: docInfo.file_id})
+                    });
+                    const fJson = await fileRes.json();
+                    if(fJson.ok){
+                        const fileUrl = `${TG_GETFILE_URL.replace("/getFile","/file")}/${fJson.result.file_path}`;
+                        addMessage({url:fileUrl, name:docInfo.file_name}, false, msg.date, "file");
+                    }
+                }
+                offset = update.update_id + 1;
+            }
         }
-      }
-    }catch(err){
-      console.warn("poll error",err);
+    }catch(e){
+        console.warn("轮询消息异常", e);
     }finally{
         isPolling = false;
         if(pollingActive){
-          setTimeout(runPollLoop, config.pollDelay);
+            // 请求全部完成之后，再延时发起下一轮
+            setTimeout(runPollLoop, POLL_DELAY);
         }
     }
-  }
+}
 
   sendBtn.onclick = ()=>{
     const v = msgInput.value.trim();
