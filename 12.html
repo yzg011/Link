@@ -102,6 +102,18 @@
     padding:10px;
     border-top:1px solid #eee;
     gap:8px;
+    align-items:center;
+}
+#upload-btn{
+    width:36px;height:36px;
+    border-radius:8px;
+    border:1px solid #ddd;
+    background:#f5f5f5;
+    font-size:18px;
+    cursor:pointer;
+}
+#file-input{
+    display:none;
 }
 #msg-input{
     flex:1;
@@ -123,6 +135,21 @@
     color:#aaa;
     padding:6px;
 }
+/* 图片/视频样式 */
+.msg-img{
+    max-width:100%;
+    border-radius:10px;
+    display:block;
+}
+.msg-video{
+    max-width:100%;
+    border-radius:10px;
+    display:block;
+}
+.msg-file-link{
+    color:#0066cc;
+    word-break:break-all;
+}
 </style>
 </head>
 <body>
@@ -141,6 +168,8 @@
     </div>
     <div class="tip-footer">Powered by Telegram Bot</div>
     <div id="chat-input-area">
+        <button id="upload-btn">📎</button>
+        <input type="file" id="file-input" />
         <input id="msg-input" placeholder="输入消息..." />
         <button id="send-btn">发送</button>
     </div>
@@ -150,6 +179,9 @@
 // ============配置区============
 const TG_SEND_URL = "https://ttg.z2m.store/sendMessage";
 const TG_GETUPDATES_URL = "https://ttg.z2m.store/getUpdates";
+const TG_GETFILE_URL = "https://ttg.z2m.store/getFile";
+// 图片/视频/文件 统一只用 sendDocument
+const TG_SENDDOC_URL = "https://ttg.z2m.store/sendDocument";
 const CHAT_ID = 8838248851; // 修改为你的TG chat_id
 const POLL_DELAY = 1200; // 请求结束后等待毫秒
 // ==============================
@@ -160,6 +192,8 @@ const closeBtn = document.querySelector("#close-btn");
 const msgInput = document.querySelector("#msg-input");
 const sendBtn = document.querySelector("#send-btn");
 const msgBox = document.querySelector("#chat-messages");
+const uploadBtn = document.querySelector("#upload-btn");
+const fileInput = document.querySelector("#file-input");
 
 let offset = 0;
 let isPolling = false;
@@ -180,14 +214,35 @@ function getLocalTime() {
     return `${h}:${m}`;
 }
 
-// 添加消息气泡
-function addMessage(text, isUser=true, timestamp=null){
+/**
+ * 支持图片/视频/文本/文件气泡渲染
+ * type: text / img / video / file
+ */
+function addMessage(content, isUser=true, timestamp=null, type="text"){
     const div = document.createElement("div");
     div.className = "msg-bubble " + (isUser ? "msg-user":"msg-server");
 
-    const textEl = document.createElement("div");
-    textEl.className = "msg-text";
-    textEl.textContent = text;
+    let contentEl;
+    if(type === "img"){
+        contentEl = document.createElement("img");
+        contentEl.className = "msg-img";
+        contentEl.src = content;
+    }else if(type === "video"){
+        contentEl = document.createElement("video");
+        contentEl.className = "msg-video";
+        contentEl.controls = true;
+        contentEl.src = content;
+    }else if(type === "file"){
+        contentEl = document.createElement("a");
+        contentEl.className = "msg-file-link";
+        contentEl.href = content.url;
+        contentEl.target="_blank";
+        contentEl.textContent = content.name;
+    }else{
+        contentEl = document.createElement("div");
+        contentEl.className = "msg-text";
+        contentEl.textContent = content;
+    }
 
     const timeEl = document.createElement("div");
     timeEl.className = "msg-time";
@@ -197,7 +252,7 @@ function addMessage(text, isUser=true, timestamp=null){
         timeEl.textContent = getLocalTime();
     }
 
-    div.appendChild(textEl);
+    div.appendChild(contentEl);
     div.appendChild(timeEl);
     msgBox.appendChild(div);
     msgBox.scrollTop = msgBox.scrollHeight;
@@ -217,8 +272,8 @@ closeBtn.onclick = ()=> {
     pollingActive = false;
 };
 
-// 发送消息到TG
-async function sendToTelegram(text){
+// 发送文字消息到TG
+async function sendToTelegramText(text){
     const payload = {
         chat_id: CHAT_ID,
         text: text
@@ -242,19 +297,88 @@ async function sendToTelegram(text){
     }
 }
 
+// ========= 重点修改：所有文件（图片/视频/文档）统一走 sendDocument =========
+async function sendFileToTG(file){
+    const fd = new FormData();
+    fd.append("chat_id", CHAT_ID);
+    fd.append("document", file); // 全部用document，不再区分photo/video
+
+    try{
+        const res = await fetch(TG_SENDDOC_URL, {method:"POST", body:fd});
+        const data = await res.json();
+        if(data.ok){
+            // 用户端统一显示文件名称
+            addMessage(file.name, true, null, "file");
+        }else{
+            alert("文件发送失败:" + JSON.stringify(data));
+        }
+    }catch(e){
+        console.error(e);
+        alert("文件上传异常");
+    }
+}
+
 // 串行递归轮询，绝对不会并发多个getUpdates请求
 async function runPollLoop(){
     if (!pollingActive || isPolling) return;
     isPolling = true;
     try {
-        const resp = await fetch(`${TG_GETUPDATES_URL}?offset=${offset}&timeout=5`);
+        const resp = await fetch(`${TG_GETUPDATES_URL}?offset=${offset}`);
         const json = await resp.json();
+        console.log("poll result",json);
         if(json.ok && Array.isArray(json.result)){
             for(const update of json.result){
-                const msg = update.message;
-                if(!msg || !msg.text) continue;
-                addMessage(msg.text, false, msg.date);
-                // ✅处理完这条消息立刻更新offset，下一次就不会再拿到
+                // 兼容私聊message 和频道 channel_post
+                const msg = update.message || update.channel_post;
+                if(!msg){
+                    offset = update.update_id +1;
+                    continue;
+                }
+
+                if(msg.text){
+                    addMessage(msg.text, false, msg.date, "text");
+                }
+                // 接收图片
+                else if(msg.photo){
+                    // 取最大分辨率图片
+                    const bestPhoto = msg.photo.at(-1);
+                    const fileRes = await fetch(TG_GETFILE_URL,{
+                        method:"POST",
+                        headers:{"Content-Type":"application/json"},
+                        body:JSON.stringify({file_id: bestPhoto.file_id})
+                    });
+                    const fJson = await fileRes.json();
+                    if(fJson.ok){
+                        const imgUrl = `${TG_GETFILE_URL.replace("/getFile","/file")}/${fJson.result.file_path}`;
+                        addMessage(imgUrl, false, msg.date, "img");
+                    }
+                }
+                // 接收视频
+                else if(msg.video){
+                    const fileRes = await fetch(TG_GETFILE_URL,{
+                        method:"POST",
+                        headers:{"Content-Type":"application/json"},
+                        body:JSON.stringify({file_id: msg.video.file_id})
+                    });
+                    const fJson = await fileRes.json();
+                    if(fJson.ok){
+                        const vUrl = `${TG_GETFILE_URL.replace("/getFile","/file")}/${fJson.result.file_path}`;
+                        addMessage(vUrl, false, msg.date, "video");
+                    }
+                }
+                // 接收普通文件
+                else if(msg.document){
+                    const fileRes = await fetch(TG_GETFILE_URL,{
+                        method:"POST",
+                        headers:{"Content-Type":"application/json"},
+                        body:JSON.stringify({file_id: msg.document.file_id})
+                    });
+                    const fJson = await fileRes.json();
+                    if(fJson.ok){
+                        const fileUrl = `${TG_GETFILE_URL.replace("/getFile","/file")}/${fJson.result.file_path}`;
+                        addMessage({url:fileUrl, name:msg.document.file_name}, false, msg.date, "file");
+                    }
+                }
                 offset = update.update_id + 1;
             }
         }
@@ -272,10 +396,18 @@ async function runPollLoop(){
 // 点击发送 /回车发送
 sendBtn.onclick = ()=>{
     const txt = msgInput.value.trim();
-    if(txt) sendToTelegram(txt);
+    if(txt) sendToTelegramText(txt);
 }
 msgInput.onkeydown = (e)=>{
     if(e.key === "Enter") sendBtn.click();
+}
+
+// 上传按钮
+uploadBtn.onclick = ()=> fileInput.click();
+fileInput.onchange = async (e)=>{
+    const f = e.target.files[0];
+    if(f) await sendFileToTG(f);
+    fileInput.value = "";
 }
 
 window.addEventListener('beforeunload', ()=>{
