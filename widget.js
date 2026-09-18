@@ -203,7 +203,7 @@
     return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
   }
 
-  // ========== 修改addMessage，支持 文字 / 图片 / 视频 ==========
+  // ========== 修改addMessage，支持 文字 / 图片 / 视频，图片增加加载失败兜底 ==========
   function addMessage(content, isUser=true, timestamp=null, msgType="text"){
     const div = document.createElement("div");
     div.className = "tgchat-bubble " + (isUser ? "tgchat-bubble-user":"tgchat-bubble-server");
@@ -213,6 +213,9 @@
       img.className = "tgchat-img-preview";
       img.src = content;
       img.loading="lazy";
+      img.onerror = function(){
+        div.innerHTML = `<div class="tgchat-text">[图片加载失败]</div>`;
+      }
       div.appendChild(img);
     }else if(msgType === "video"){
       const video = document.createElement("video");
@@ -340,51 +343,90 @@
   // ========== 新增：通过file_id获取TG图片/视频预览地址 ==========
   async function getTgFileUrl(fileId){
     if(!config.getFileUrl) return null;
-    const res = await fetch(config.getFileUrl, {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({file_id:fileId})
-    });
-    const json = await res.json();
-    if(json.ok){
-      const filePath = json.result.file_path;
-      // 把 /getFile 替换成 /file 得到预览资源地址
-      return `${config.getFileUrl.replace("/getFile","/file")}/${filePath}`;
+    try{
+      const res = await fetch(config.getFileUrl, {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({file_id:fileId})
+      });
+      const json = await res.json();
+      console.log("getFile返回：",json);
+      if(json.ok){
+        const filePath = json.result.file_path;
+        // 把 /getFile 替换成 /file 得到预览资源地址
+        const previewUrl = `${config.getFileUrl.replace("/getFile","/file")}/${filePath}`;
+        console.log("预览地址：",previewUrl);
+        return previewUrl;
+      }
+    }catch(e){
+      console.error("getFile接口请求失败",e);
     }
     return null;
   }
 
-  // ========== 重写轮询，支持接收图片、视频 ==========
+  // ========== 重写轮询，修复for循环await问题，支持图片/视频/语音 ==========
   async function runPollLoop(){
     if(!pollingActive || isPolling) return;
     isPolling = true;
     try{
       const res = await fetch(`${config.tgGetUrl}?offset=${offset}&timeout=5`);
       const json = await res.json();
+      console.log("轮询原始数据：",json);
       if(json.ok && Array.isArray(json.result)){
+        // 使用for...of + await，顺序串行处理消息
         for(const u of json.result){
           const m = u.message;
-          if(!m) continue;
-          // 文字消息
-          if(m.text){
-            addMessage(m.text,false,m.date,"text");
+          if(!m){
+            offset = u.update_id +1;
+            continue;
           }
-          // 图片消息，取最大尺寸图片
-          else if(m.photo && m.photo.length>0){
-            const bestPhoto = m.photo[m.photo.length-1];
-            const fileUrl = await getTgFileUrl(bestPhoto.file_id);
-            if(fileUrl) addMessage(fileUrl,false,m.date,"image");
+          // 过滤自己发给机器人的消息（避免重复渲染）
+          if(m.from?.id === config.chatId){
+            offset = u.update_id +1;
+            continue;
           }
-          // 视频消息
-          else if(m.video){
-            const fileUrl = await getTgFileUrl(m.video.file_id);
-            if(fileUrl) addMessage(fileUrl,false,m.date,"video");
+          try{
+            // 文字消息
+            if(m.text){
+              addMessage(m.text,false,m.date,"text");
+            }
+            // 图片消息，取最大尺寸图片
+            else if(m.photo && m.photo.length>0){
+              const bestPhoto = m.photo[m.photo.length-1];
+              const fileUrl = await getTgFileUrl(bestPhoto.file_id);
+              if(fileUrl){
+                addMessage(fileUrl,false,m.date,"image");
+              }else{
+                addMessage("[图片，加载失败]",false,m.date,"text");
+              }
+            }
+            // 视频消息
+            else if(m.video){
+              const fileUrl = await getTgFileUrl(m.video.file_id);
+              if(fileUrl){
+                addMessage(fileUrl,false,m.date,"video");
+              }else{
+                addMessage("[视频，加载失败]",false,m.date,"text");
+              }
+            }
+            // 语音消息兜底
+            else if(m.voice){
+              addMessage("[语音消息，暂不支持播放]",false,m.date,"text");
+            }
+            // 其他未知类型
+            else{
+              addMessage("[未知消息类型]",false,m.date,"text");
+            }
+          }catch(msgErr){
+            console.error("单条消息渲染异常：",msgErr);
+            addMessage("[消息解析失败]",false,m.date,"text");
           }
+          // 本条消息处理完毕，更新offset
           offset = u.update_id + 1;
         }
       }
     }catch(err){
-      console.warn("poll error",err);
+      console.warn("轮询请求异常：",err);
     }finally{
         isPolling = false;
         if(pollingActive){
