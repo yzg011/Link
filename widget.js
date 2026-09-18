@@ -1,4 +1,4 @@
-// 版本3.0 【适配你的script配置：data-get-file-url】
+// 版本3.0 【配色改成白色背景 + 青蓝顶部，和截图一致】
 (function () {
   const scriptEl = document.currentScript;
   // 读取data配置（完全匹配你script上的属性）
@@ -21,7 +21,7 @@
   let pollingActive = false;
   let isSending = false; // ✅ 发送锁：标记是否正在发送
 
-  // 注入CSS
+  // 注入CSS【已修改配色，匹配截图】
   const style = document.createElement("style");
   style.textContent = `
     #tgchat-widget-icon,
@@ -72,9 +72,9 @@
       bottom:90px;
       width:${config.openWidth}px;
       max-width: calc(100vw - 32px);
-      background:#0e1621;
+      background:#ffffff;
       border-radius:12px;
-      box-shadow:0 4px 24px rgba(0,0,0,0.4);
+      box-shadow:0 4px 24px rgba(0,0,0,0.2);
       overflow:hidden;
       overflow-x:hidden;
       pointer-events:auto;
@@ -82,20 +82,20 @@
       flex-direction:column;
       min-height:600px;
     }
-    #tgchat-header{background:#182533;color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;font-size:18px;font-weight:bold;}
-    #tgchat-close{background:transparent;border:none;font-size:22px;color:#fff;cursor:pointer;}
-    #tgchat-messages{flex:1;padding:16px;overflow-y:auto;overflow-x:hidden;background:#0e1621;min-height:0;}
+    #tgchat-header{background:${config.themeColor};color:#000000;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;font-size:24px;font-weight:bold;}
+    #tgchat-close{background:transparent;border:none;font-size:26px;color:#000;cursor:pointer;}
+    #tgchat-messages{flex:1;padding:16px;overflow-y:auto;overflow-x:hidden;background:#ffffff;min-height:0;}
     .tgchat-bubble{max-width:80%;padding:8px 14px;position:relative;border-radius:16px;margin-bottom:10px;}
-    .tgchat-bubble-server{background:#182533;align-self:flex-start;color:#fff;}
+    .tgchat-bubble-server{background:#efefef;align-self:flex-start;color:#000000;}
     .tgchat-bubble-user{background:${config.themeColor};color:#000;margin-left:auto;}
     .tgchat-text{word-break:break-word;font-size:15px;line-height:1.45;padding-right:48px;}
-    .tgchat-time{position:absolute;right:12px;bottom:6px;font-size:11px;color:rgba(255,255,255,0.35);}
+    .tgchat-time{position:absolute;right:12px;bottom:6px;font-size:11px;color:rgba(0,0,0,0.40);}
     .tgchat-bubble-user .tgchat-time{color:rgba(0,0,0,0.45);}
-    #tgchat-input-area{display:flex;padding:10px;border-top:1px solid rgba(255,255,255,0.08);gap:8px;background:#0e1621;align-items:center;}
+    #tgchat-input-area{display:flex;padding:10px;border-top:1px solid #e8e8e8;gap:8px;background:#ffffff;align-items:center;}
     /* 文件上传按钮 */
     #tgchat-upload-btn{
       width:36px;height:36px;border-radius:8px;border:none;
-      background:#182533;color:#fff;font-size:18px;cursor:pointer;
+      background:#efefef;color:#000;font-size:18px;cursor:pointer;
       flex:0 0 36px;
     }
     #tgchat-file-input{display:none;}
@@ -103,15 +103,15 @@
     #tgchat-input{
       flex:1;
       padding:10px 12px;
-      border:1px solid rgba(255,255,255,0.08);
+      border:1px solid #e8e8e8;
       border-radius:8px;
       font-size:16px !important;
-      background:#182533;color:#fff;outline:none;
+      background:#efefef;color:#000;outline:none;
     }
-    #tgchat-input::placeholder{color:rgba(255,255,255,0.45);}
+    #tgchat-input::placeholder{color:rgba(0,0,0,0.45);}
     #tgchat-send{padding:0 16px;background:${config.themeColor};border:none;border-radius:8px;cursor:pointer;color:#000;}
     #tgchat-send:disabled, #tgchat-upload-btn:disabled{opacity:0.5;cursor:not-allowed;}
-    .tgchat-footer{text-align:center;font-size:12px;color:rgba(255,255,255,0.35);padding:4px 6px;background:#0e1621;}
+    .tgchat-footer{text-align:center;font-size:12px;color:#999;padding:4px 6px;background:#ffffff;}
     /* 聊天内图片 */
     .tgchat-img-preview{max-width:100%;border-radius:10px;margin-bottom:4px;display:block;}
   `;
