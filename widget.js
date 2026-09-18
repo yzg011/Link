@@ -1,3 +1,5 @@
+// 版本1.0
+
 (function () {
   const scriptEl = document.currentScript;
   // 读取data配置
