@@ -1,4 +1,4 @@
-// 版本3.0 【配色改成白色背景 + 青蓝顶部，和截图一致】
+// 版本3.0 【配色改成白色背景 + 青蓝顶部，增加audio/voice音频支持，样式统一】
 (function () {
   const scriptEl = document.currentScript;
   // 读取data配置（完全匹配你script上的属性）
@@ -21,7 +21,7 @@
   let pollingActive = false;
   let isSending = false; // ✅ 发送锁：标记是否正在发送
 
-  // 注入CSS【已修改配色，匹配截图】
+  // 注入CSS【已修改配色，匹配截图 + 新增音频播放器样式】
   const style = document.createElement("style");
   style.textContent = `
     #tgchat-widget-icon,
@@ -88,7 +88,7 @@
     .tgchat-bubble{max-width:80%;padding:8px 14px;position:relative;border-radius:16px;margin-bottom:10px;}
     .tgchat-bubble-server{background:#efefef;align-self:flex-start;color:#000000;}
     .tgchat-bubble-user{background:${config.themeColor};color:#000;margin-left:auto;}
-    .tgchat-text{word-break:break-word;font-size:15px;line-height:1.45;padding-right:48px;}
+    .tgchat-text{word-break:break-word;font-size:15px;line-height:1.45;padding-right:48px;color:#000;}
     .tgchat-time{position:absolute;right:12px;bottom:6px;font-size:11px;color:rgba(0,0,0,0.40);}
     .tgchat-bubble-user .tgchat-time{color:rgba(0,0,0,0.45);}
     #tgchat-input-area{display:flex;padding:10px;border-top:1px solid #e8e8e8;gap:8px;background:#ffffff;align-items:center;}
@@ -114,6 +114,8 @@
     .tgchat-footer{text-align:center;font-size:12px;color:#999;padding:4px 6px;background:#ffffff;}
     /* 聊天内图片 */
     .tgchat-img-preview{max-width:100%;border-radius:10px;margin-bottom:4px;display:block;}
+    /* ✅ 新增音频播放器样式 */
+    .tgchat-audio-preview{width:100%;border-radius:8px;margin:4px 0;}
   `;
   document.head.appendChild(style);
 
@@ -202,7 +204,7 @@
     return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
   }
 
-  // 添加消息（支持 text / image / video / file）
+  // 添加消息（支持 text / image / video / audio / file）
   function addMessage(content, isUser=true, timestamp=null, type="text"){
     const div = document.createElement("div");
     div.className = "tgchat-bubble " + (isUser ? "tgchat-bubble-user":"tgchat-bubble-server");
@@ -220,6 +222,12 @@
       video.controls = true;
       video.style.maxWidth = "100%";
       div.appendChild(video);
+    }else if(type === "audio"){
+      const audio = document.createElement("audio");
+      audio.className = "tgchat-audio-preview";
+      audio.src = content;
+      audio.controls = true;
+      div.appendChild(audio);
     }else if(type === "file"){
       const t = document.createElement("div");
       t.className = "tgchat-text";
@@ -309,7 +317,7 @@
         uploadUrl = config.fileApiBase.replace("/sendDocument","/sendPhoto");
         formData.append("photo", file);
       }else{
-        // 视频/其他文件直接使用配置好的地址
+        // 视频/音频/其他文件直接使用配置好的地址
         uploadUrl = config.fileApiBase;
         formData.append("document", file);
       }
@@ -320,10 +328,16 @@
       });
       const data = await res.json();
       if(data.ok){
-        // 本地预览图片
+        // 本地预览判断：图片/音频/视频
         if(file.type.startsWith("image/")){
           const previewUrl = URL.createObjectURL(file);
           addMessage(previewUrl, true, null, "image");
+        }else if(file.type.startsWith("audio/")){
+          const previewUrl = URL.createObjectURL(file);
+          addMessage(previewUrl, true, null, "audio");
+        }else if(file.type.startsWith("video/")){
+          const previewUrl = URL.createObjectURL(file);
+          addMessage(previewUrl, true, null, "video");
         }else{
           addMessage(`📄 ${file.name}`, true, null, "text");
         }
@@ -396,9 +410,37 @@ async function runPollLoop(){
                         addMessage(vUrl, false, msg.date, "video");
                     }
                 }
+                // ✅新增：音频文件 msg.audio
+                let audioInfo = msg.audio || (msg.forward_from && msg.forward_from.audio);
+                if(audioInfo && !photoList && !videoInfo){
+                    const fileRes = await fetch(config.getFileUrl,{
+                        method:"POST",
+                        headers:{"Content-Type":"application/json"},
+                        body:JSON.stringify({file_id: audioInfo.file_id})
+                    });
+                    const fJson = await fileRes.json();
+                    if(fJson.ok){
+                        const audioUrl = `${config.getFileUrl.replace("/getFile","/file")}/${fJson.result.file_path}`;
+                        addMessage(audioUrl, false, msg.date, "audio");
+                    }
+                }
+                // ✅新增：TG语音消息 msg.voice（ogg语音）
+                let voiceInfo = msg.voice || (msg.forward_from && msg.forward_from.voice);
+                if(voiceInfo && !photoList && !videoInfo && !audioInfo){
+                    const fileRes = await fetch(config.getFileUrl,{
+                        method:"POST",
+                        headers:{"Content-Type":"application/json"},
+                        body:JSON.stringify({file_id: voiceInfo.file_id})
+                    });
+                    const fJson = await fileRes.json();
+                    if(fJson.ok){
+                        const voiceUrl = `${config.getFileUrl.replace("/getFile","/file")}/${fJson.result.file_path}`;
+                        addMessage(voiceUrl, false, msg.date, "audio");
+                    }
+                }
                 // ✅兼容转发文件
                 let docInfo = msg.document || (msg.forward_from && msg.forward_from.document);
-                if(docInfo && !photoList && !videoInfo){
+                if(docInfo && !photoList && !videoInfo && !audioInfo && !voiceInfo){
                     const fileRes = await fetch(config.getFileUrl,{
                         method:"POST",
                         headers:{"Content-Type":"application/json"},
