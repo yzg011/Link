@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TG Live Chat Popup</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui}
+/* 右下角悬浮按钮 */
+#chat-float-btn{
+    position:fixed;
+    bottom:24px;
+    right:24px;
+    width:56px;height:56px;
+    border-radius:50%;
+    background:#22d3ee;
+    border:none;
+    color:white;
+    font-size:24px;
+    cursor:pointer;
+    box-shadow:0 4px 12px #00000026;
+    z-index:9999;
+}
+/* 弹窗窗口 */
+#chat-popup{
+    display:none;
+    position:fixed;
+    bottom:90px;
+    right:24px;
+    width:360px;
+    height:620px;
+    background:#fff;
+    border-radius:12px;
+    box-shadow:0 4px 20px #00000033;
+    overflow:hidden;
+    z-index:9999;
+    flex-direction:column;
+}
+/* 弹窗头部 */
+#chat-header{
+    background:#22d3ee;
+    color:#000;
+    padding:12px 16px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    font-size:22px;
+    font-weight:bold;
+}
+#close-btn{
+    background:transparent;
+    border:none;
+    font-size:24px;
+    cursor:pointer;
+}
+/* 消息区域 */
+#chat-messages{
+    flex:1;
+    padding:16px;
+    overflow-y:auto;
+    background:#ffffff;
+}
+.msg-bubble{
+    max-width:80%;
+    padding:8px 14px;
+    /* 关键：给气泡开启定位，给时间做锚点 */
+    position:relative;
+    border-radius:16px;
+    margin-bottom:10px;
+}
+.msg-server{
+    background:#efefef;
+    align-self:flex-start;
+}
+.msg-user{
+    background:#22d3ee;
+    color:#fff;
+    margin-left:auto;
+}
+.msg-text{
+    word-break:break-word;
+    font-size:15px;
+    /* 单行文字上下居中，多行正常 */
+    line-height:1.45;
+    /* 给右下角时间留出一点右边距离，防止文字和时间重叠 */
+    padding-right:48px;
+}
+/* 时间：绝对定位，脱离文档流，不挤压文字！！ */
+.msg-time{
+    position:absolute;
+    right:12px;
+    bottom:6px;
+    font-size:11px;
+    color:#999;
+}
+/* ✅ 用户气泡时间改为深色半透，解决白色看不见 */
+.msg-user .msg-time{
+    color:#00000080;
+}
+/* 输入框区域 */
+#chat-input-area{
+    display:flex;
+    padding:10px;
+    border-top:1px solid #eee;
+    gap:8px;
+    align-items:center;
+}
+#upload-btn{
+    width:36px;height:36px;
+    border-radius:8px;
+    border:1px solid #ddd;
+    background:#f5f5f5;
+    font-size:18px;
+    cursor:pointer;
+}
+#file-input{
+    display:none;
+}
+#msg-input{
+    flex:1;
+    padding:10px 12px;
+    border:1px solid #ddd;
+    border-radius:8px;
+    font-size:15px;
+}
+#send-btn{
+    padding:0 20px;
+    height:44px;
+    background:#22d3ee;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+    color:#fff;
+    font-size:17px;
+    min-width:80px;
+}
+.tip-footer{
+    text-align:center;
+    font-size:12px;
+    color:#aaa;
+    padding:6px;
+}
+/* 图片/视频样式，增加最大高度限制，防止图片撑爆窗口 */
+.msg-img{
+    max-width:100%;
+    max-height:220px;
+    border-radius:10px;
+    display:block;
+    object-fit:contain;
+}
+.msg-video{
+    max-width:100%;
+    max-height:240px;
+    border-radius:10px;
+    display:block;
+}
+.msg-audio{
+    width:100%;
+    border-radius:8px;
+    margin:4px 0;
+}
+.msg-file-link{
+    color:#0066cc;
+    word-break:break-all;
+}
+</style>
+</head>
+<body>
+
+<!-- 悬浮按钮 -->
+<button id="chat-float-btn">💬</button>
+
+<!-- 聊天弹窗 -->
+<div id="chat-popup">
+    <div id="chat-header">
+        Live Chat
+        <button id="close-btn">×</button>
+    </div>
+    <div id="chat-messages">
+        <!--初始消息JS生成-->
+    </div>
+    <div class="tip-footer">Powered by Telegram Bot</div>
+    <div id="chat-input-area">
+        <button id="upload-btn">📎</button>
+        <input type="file" id="file-input" />
+        <input id="msg-input" placeholder="输入消息..." />
+        <button id="send-btn">发送</button>
+    </div>
+</div>
+
+<script>
+// ============配置区============
+const TG_SEND_URL = "https://ttg.z2m.store/sendMessage";
+const TG_GETUPDATES_URL = "https://ttg.z2m.store/getUpdates";
+const TG_GETFILE_URL = "https://ttg.z2m.store/getFile";
+// 图片/视频/音频/文件 统一只用 sendDocument
+const TG_SENDDOC_URL = "https://ttg.z2m.store/sendDocument";
+const CHAT_ID = 8838248851; // 修改为你的TG chat_id
+const POLL_DELAY = 1200; // 请求结束后等待毫秒
+// ==============================
+
+const floatBtn = document.querySelector("#chat-float-btn");
+const popup = document.querySelector("#chat-popup");
+const closeBtn = document.querySelector("#close-btn");
+const msgInput = document.querySelector("#msg-input");
+const sendBtn = document.querySelector("#send-btn");
+const msgBox = document.querySelector("#chat-messages");
+const uploadBtn = document.querySelector("#upload-btn");
+const fileInput = document.querySelector("#file-input");
+
+let offset = 0;
+let isPolling = false;
+let pollingActive = false;
+
+// 格式化Unix时间戳(TG返回date) HH:mm
+function formatTime(timestamp) {
+    const date = new Date(timestamp * 1000);
+    const h = date.getHours().toString().padStart(2, "0");
+    const m = date.getMinutes().toString().padStart(2, "0");
+    return `${h}:${m}`;
+}
+// 获取本地当前时间 HH:mm
+function getLocalTime() {
+    const now = new Date();
+    const h = now.getHours().toString().padStart(2, "0");
+    const m = now.getMinutes().toString().padStart(2, "0");
+    return `${h}:${m}`;
+}
+
+/**
+ * 支持图片/视频/音频/文本/文件气泡渲染
+ * type: text / img / video / audio / file
+ */
+function addMessage(content, isUser=true, timestamp=null, type="text"){
+    const div = document.createElement("div");
+    div.className = "msg-bubble " + (isUser ? "msg-user":"msg-server");
+
+    let contentEl;
+    if(type === "img"){
+        contentEl = document.createElement("img");
+        contentEl.className = "msg-img";
+        contentEl.src = content;
+        // 图片加载完成自动滚动到底部
+        contentEl.onload = ()=>{
+            msgBox.scrollTop = msgBox.scrollHeight;
+        }
+    }else if(type === "video"){
+        contentEl = document.createElement("video");
+        contentEl.className = "msg-video";
+        contentEl.controls = true;
+        contentEl.src = content;
+    }else if(type === "audio"){
+        contentEl = document.createElement("audio");
+        contentEl.className = "msg-audio";
+        contentEl.controls = true;
+        contentEl.src = content;
+    }else if(type === "file"){
+        contentEl = document.createElement("a");
+        contentEl.className = "msg-file-link";
+        contentEl.href = content.url;
+        contentEl.target="_blank";
+        contentEl.textContent = content.name;
+    }else{
+        contentEl = document.createElement("div");
+        contentEl.className = "msg-text";
+        contentEl.textContent = content;
+    }
+
+    const timeEl = document.createElement("div");
+    timeEl.className = "msg-time";
+    if(timestamp){
+        timeEl.textContent = formatTime(timestamp);
+    }else{
+        timeEl.textContent = getLocalTime();
+    }
+
+    div.appendChild(contentEl);
+    div.appendChild(timeEl);
+    msgBox.appendChild(div);
+    msgBox.scrollTop = msgBox.scrollHeight;
+}
+
+//初始化欢迎消息
+addMessage("Hello!", false);
+
+// 打开关闭弹窗
+floatBtn.onclick = ()=> {
+    popup.style.display = "flex";
+    pollingActive = true;
+    runPollLoop();
+};
+closeBtn.onclick = ()=> {
+    popup.style.display = "none";
+    pollingActive = false;
+};
+
+// 发送文字消息到TG
+async function sendToTelegramText(text){
+    const payload = {
+        chat_id: CHAT_ID,
+        text: text
+    };
+    try{
+        const res = await fetch(TG_SEND_URL,{
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if(data.ok){
+            addMessage(text, true);
+            msgInput.value = "";
+        }else{
+            alert("发送失败:" + JSON.stringify(data));
+        }
+    }catch(err){
+        console.error(err);
+        alert("请求异常");
+    }
+}
+
+// 上传音频/图片/视频/文档统一发送
+async function sendFileToTG(file){
+    const fd = new FormData();
+    fd.append("chat_id", CHAT_ID);
+    fd.append("document", file); // 全部用document发给TG
+
+    // 本地预览处理
+    const isImg = file.type.startsWith("image/");
+    const isVideo = file.type.startsWith("video/");
+    const isAudio = file.type.startsWith("audio/");
+    const localPreviewUrl = URL.createObjectURL(file);
+    if(isImg){
+        addMessage(localPreviewUrl, true, null, "img");
+    }else if(isVideo){
+        addMessage(localPreviewUrl, true, null, "video");
+    }else if(isAudio){
+        addMessage(localPreviewUrl, true, null, "audio");
+    }else{
+        // 普通文档
+        addMessage({url:"#", name:file.name}, true, null, "file");
+    }
+
+    try{
+        const res = await fetch(TG_SENDDOC_URL, {method:"POST", body:fd});
+        const data = await res.json();
+        if(!data.ok){
+            alert("文件发送失败:" + JSON.stringify(data));
+        }
+    }catch(e){
+        console.error(e);
+        alert("文件上传异常");
+    }
+}
+
+// 串行递归轮询，绝对不会并发多个getUpdates请求
+async function runPollLoop(){
+    if (!pollingActive || isPolling) return;
+    isPolling = true;
+    try {
+        const resp = await fetch(`${TG_GETUPDATES_URL}?offset=${offset}`);
+        const json = await resp.json();
+        console.log("poll result",json);
+        if(json.ok && Array.isArray(json.result)){
+            for(const update of json.result){
+                // 兼容私聊message 和频道 channel_post
+                const msg = update.message || update.channel_post;
+                if(!msg){
+                    offset = update.update_id +1;
+                    continue;
+                }
+
+                if(msg.text){
+                    addMessage(msg.text, false, msg.date, "text");
+                }
+                // 接收图片
+                else if(msg.photo){
+                    // 取最大分辨率图片
+                    const bestPhoto = msg.photo.at(-1);
+                    const fileRes = await fetch(TG_GETFILE_URL,{
+                        method:"POST",
+                        headers:{"Content-Type":"application/json"},
+                        body:JSON.stringify({file_id: bestPhoto.file_id})
+                    });
+                    const fJson = await fileRes.json();
+                    if(fJson.ok){
+                        const imgUrl = `${TG_GETFILE_URL.replace("/getFile","/file")}/${fJson.result.file_path}`;
+                        addMessage(imgUrl, false, msg.date, "img");
+                    }
+                }
+                // 接收视频
+                else if(msg.video){
+                    const fileRes = await fetch(TG_GETFILE_URL,{
+                        method:"POST",
+                        headers:{"Content-Type":"application/json"},
+                        body:JSON.stringify({file_id: msg.video.file_id})
+                    });
+                    const fJson = await fileRes.json();
+                    if(fJson.ok){
+                        const vUrl = `${TG_GETFILE_URL.replace("/getFile","/file")}/${fJson.result.file_path}`;
+                        addMessage(vUrl, false, msg.date, "video");
+                    }
+                }
+                // ✅ 新增：接收TG音频消息 msg.audio
+                else if(msg.audio){
+                    const fileRes = await fetch(TG_GETFILE_URL,{
+                        method:"POST",
+                        headers:{"Content-Type":"application/json"},
+                        body:JSON.stringify({file_id: msg.audio.file_id})
+                    });
+                    const fJson = await fileRes.json();
+                    if(fJson.ok){
+                        const audioUrl = `${TG_GETFILE_URL.replace("/getFile","/file")}/${fJson.result.file_path}`;
+                        addMessage(audioUrl, false, msg.date, "audio");
+                    }
+                }
+                // 接收普通文件
+                else if(msg.document){
+                    const fileRes = await fetch(TG_GETFILE_URL,{
+                        method:"POST",
+                        headers:{"Content-Type":"application/json"},
+                        body:JSON.stringify({file_id: msg.document.file_id})
+                    });
+                    const fJson = await fileRes.json();
+                    if(fJson.ok){
+                        const fileUrl = `${TG_GETFILE_URL.replace("/getFile","/file")}/${fJson.result.file_path}`;
+                        addMessage({url:fileUrl, name:msg.document.file_name}, false, msg.date, "file");
+                    }
+                }
+                offset = update.update_id + 1;
+            }
+        }
+    }catch(e){
+        console.warn("轮询消息异常", e);
+    }finally{
+        isPolling = false;
+        if(pollingActive){
+            // 请求全部完成之后，再延时发起下一轮
+            setTimeout(runPollLoop, POLL_DELAY);
+        }
+    }
+}
+
+// 点击发送 /回车发送
+sendBtn.onclick = ()=>{
+    const txt = msgInput.value.trim();
+    if(txt) sendToTelegramText(txt);
+}
+msgInput.onkeydown = (e)=>{
+    if(e.key === "Enter") sendBtn.click();
+}
+
+// 上传按钮
+uploadBtn.onclick = ()=> fileInput.click();
+fileInput.onchange = async (e)=>{
+    const f = e.target.files[0];
+    if(f) await sendFileToTG(f);
+    fileInput.value = "";
+}
+
+window.addEventListener('beforeunload', ()=>{
+    pollingActive = false;
+});
+</script>
+
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"fde1149659624309883f0c47e47bd79f","r":1,"spa":2}' crossorigin="anonymous"></script>
+</body>
+</html>
