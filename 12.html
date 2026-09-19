@@ -74,7 +74,7 @@
 }
 .msg-user{
     background:#22d3ee;
-    color:#000;
+    color:#fff;
     margin-left:auto;
 }
 .msg-text{
@@ -94,7 +94,7 @@
     color:#999;
 }
 .msg-user .msg-time{
-    color:#444;
+    color:#fff;
 }
 /* 输入框区域 */
 #chat-input-area{
@@ -123,11 +123,15 @@
     font-size:15px;
 }
 #send-btn{
-    padding:0 16px;
+    padding:0 20px;
+    height:44px;
     background:#22d3ee;
     border:none;
     border-radius:8px;
     cursor:pointer;
+    color:#fff;
+    font-size:17px;
+    min-width:80px;
 }
 .tip-footer{
     text-align:center;
@@ -135,14 +139,17 @@
     color:#aaa;
     padding:6px;
 }
-/* 图片/视频样式 */
+/* 图片/视频样式，增加最大高度限制，防止图片撑爆窗口 */
 .msg-img{
     max-width:100%;
+    max-height:220px;
     border-radius:10px;
     display:block;
+    object-fit:contain;
 }
 .msg-video{
     max-width:100%;
+    max-height:240px;
     border-radius:10px;
     display:block;
 }
@@ -227,6 +234,10 @@ function addMessage(content, isUser=true, timestamp=null, type="text"){
         contentEl = document.createElement("img");
         contentEl.className = "msg-img";
         contentEl.src = content;
+        // 图片加载完成自动滚动到底部
+        contentEl.onload = ()=>{
+            msgBox.scrollTop = msgBox.scrollHeight;
+        }
     }else if(type === "video"){
         contentEl = document.createElement("video");
         contentEl.className = "msg-video";
@@ -297,19 +308,28 @@ async function sendToTelegramText(text){
     }
 }
 
-// ========= 重点修改：所有文件（图片/视频/文档）统一走 sendDocument =========
+// ========= 重点修改：上传图片本地预览，后端依旧全部走 sendDocument =========
 async function sendFileToTG(file){
     const fd = new FormData();
     fd.append("chat_id", CHAT_ID);
-    fd.append("document", file); // 全部用document，不再区分photo/video
+    fd.append("document", file); // 全部用document发给TG
+
+    // 本地预览处理
+    const isImg = file.type.startsWith("image/");
+    const isVideo = file.type.startsWith("video/");
+    const localPreviewUrl = URL.createObjectURL(file);
+    if(isImg){
+        addMessage(localPreviewUrl, true, null, "img");
+    }else if(isVideo){
+        addMessage(localPreviewUrl, true, null, "video");
+    }else{
+        addMessage(file.name, true, null, "file");
+    }
 
     try{
         const res = await fetch(TG_SENDDOC_URL, {method:"POST", body:fd});
         const data = await res.json();
-        if(data.ok){
-            // 用户端统一显示文件名称
-            addMessage(file.name, true, null, "file");
-        }else{
+        if(!data.ok){
             alert("文件发送失败:" + JSON.stringify(data));
         }
     }catch(e){
@@ -415,5 +435,6 @@ window.addEventListener('beforeunload', ()=>{
 });
 </script>
 
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"fde1149659624309883f0c47e47bd79f","r":1,"spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
