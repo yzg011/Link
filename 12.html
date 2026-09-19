@@ -85,6 +85,9 @@
     /* 给右下角时间留出一点右边距离，防止文字和时间重叠 */
     padding-right:48px;
 }
+ .msg-user .msg-text {
+    color:#000;
+}   
 /* 时间：绝对定位，脱离文档流，不挤压文字！！ */
 .msg-time{
     position:absolute;
@@ -154,6 +157,11 @@
     border-radius:10px;
     display:block;
 }
+.msg-audio{
+    width:100%;
+    border-radius:8px;
+    margin:4px 0;
+}
 .msg-file-link{
     color:#0066cc;
     word-break:break-all;
@@ -188,7 +196,7 @@
 const TG_SEND_URL = "https://ttg.z2m.store/sendMessage";
 const TG_GETUPDATES_URL = "https://ttg.z2m.store/getUpdates";
 const TG_GETFILE_URL = "https://ttg.z2m.store/getFile";
-// 图片/视频/文件 统一只用 sendDocument
+// 图片/视频/音频/文件 统一只用 sendDocument
 const TG_SENDDOC_URL = "https://ttg.z2m.store/sendDocument";
 const CHAT_ID = 8838248851; // 修改为你的TG chat_id
 const POLL_DELAY = 1200; // 请求结束后等待毫秒
@@ -223,8 +231,8 @@ function getLocalTime() {
 }
 
 /**
- * 支持图片/视频/文本/文件气泡渲染
- * type: text / img / video / file
+ * 支持图片/视频/音频/语音/文本/文件气泡渲染
+ * type: text / img / video / audio / file
  */
 function addMessage(content, isUser=true, timestamp=null, type="text"){
     const div = document.createElement("div");
@@ -242,6 +250,11 @@ function addMessage(content, isUser=true, timestamp=null, type="text"){
     }else if(type === "video"){
         contentEl = document.createElement("video");
         contentEl.className = "msg-video";
+        contentEl.controls = true;
+        contentEl.src = content;
+    }else if(type === "audio"){
+        contentEl = document.createElement("audio");
+        contentEl.className = "msg-audio";
         contentEl.controls = true;
         contentEl.src = content;
     }else if(type === "file"){
@@ -309,7 +322,7 @@ async function sendToTelegramText(text){
     }
 }
 
-// ========= 修复：上传普通文档，正确渲染文件名 =========
+// 上传音频/图片/视频/文档统一发送
 async function sendFileToTG(file){
     const fd = new FormData();
     fd.append("chat_id", CHAT_ID);
@@ -318,13 +331,16 @@ async function sendFileToTG(file){
     // 本地预览处理
     const isImg = file.type.startsWith("image/");
     const isVideo = file.type.startsWith("video/");
+    const isAudio = file.type.startsWith("audio/");
     const localPreviewUrl = URL.createObjectURL(file);
     if(isImg){
         addMessage(localPreviewUrl, true, null, "img");
     }else if(isVideo){
         addMessage(localPreviewUrl, true, null, "video");
+    }else if(isAudio){
+        addMessage(localPreviewUrl, true, null, "audio");
     }else{
-        // ✅ 普通文档：构造对象传给file类型渲染，否则无法显示文件名
+        // 普通文档
         addMessage({url:"#", name:file.name}, true, null, "file");
     }
 
@@ -386,6 +402,32 @@ async function runPollLoop(){
                     if(fJson.ok){
                         const vUrl = `${TG_GETFILE_URL.replace("/getFile","/file")}/${fJson.result.file_path}`;
                         addMessage(vUrl, false, msg.date, "video");
+                    }
+                }
+                // 音频文件 mp3
+                else if(msg.audio){
+                    const fileRes = await fetch(TG_GETFILE_URL,{
+                        method:"POST",
+                        headers:{"Content-Type":"application/json"},
+                        body:JSON.stringify({file_id: msg.audio.file_id})
+                    });
+                    const fJson = await fileRes.json();
+                    if(fJson.ok){
+                        const audioUrl = `${TG_GETFILE_URL.replace("/getFile","/file")}/${fJson.result.file_path}`;
+                        addMessage(audioUrl, false, msg.date, "audio");
+                    }
+                }
+                // ✅ TG语音消息 voice (ogg)
+                else if(msg.voice){
+                    const fileRes = await fetch(TG_GETFILE_URL,{
+                        method:"POST",
+                        headers:{"Content-Type":"application/json"},
+                        body:JSON.stringify({file_id: msg.voice.file_id})
+                    });
+                    const fJson = await fileRes.json();
+                    if(fJson.ok){
+                        const voiceUrl = `${TG_GETFILE_URL.replace("/getFile","/file")}/${fJson.result.file_path}`;
+                        addMessage(voiceUrl, false, msg.date, "audio");
                     }
                 }
                 // 接收普通文件
