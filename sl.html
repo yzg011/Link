@@ -79,13 +79,15 @@
 }
 .msg-text{
     word-break:break-word;
-    background:#efefef;
     font-size:15px;
     /* 单行文字上下居中，多行正常 */
     line-height:1.45;
     /* 给右下角时间留出一点右边距离，防止文字和时间重叠 */
     padding-right:48px;
 }
+ .msg-user .msg-text {
+    color:#000;
+}   
 /* 时间：绝对定位，脱离文档流，不挤压文字！！ */
 .msg-time{
     position:absolute;
