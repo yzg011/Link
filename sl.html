@@ -228,7 +228,7 @@ function getLocalTime() {
 }
 
 /**
- * 支持图片/视频/音频/文本/文件气泡渲染
+ * 支持图片/视频/音频/语音/文本/文件气泡渲染
  * type: text / img / video / audio / file
  */
 function addMessage(content, isUser=true, timestamp=null, type="text"){
@@ -401,7 +401,7 @@ async function runPollLoop(){
                         addMessage(vUrl, false, msg.date, "video");
                     }
                 }
-                // ✅ 新增：接收TG音频消息 msg.audio
+                // 音频文件 mp3
                 else if(msg.audio){
                     const fileRes = await fetch(TG_GETFILE_URL,{
                         method:"POST",
@@ -412,6 +412,19 @@ async function runPollLoop(){
                     if(fJson.ok){
                         const audioUrl = `${TG_GETFILE_URL.replace("/getFile","/file")}/${fJson.result.file_path}`;
                         addMessage(audioUrl, false, msg.date, "audio");
+                    }
+                }
+                // ✅ TG语音消息 voice (ogg)
+                else if(msg.voice){
+                    const fileRes = await fetch(TG_GETFILE_URL,{
+                        method:"POST",
+                        headers:{"Content-Type":"application/json"},
+                        body:JSON.stringify({file_id: msg.voice.file_id})
+                    });
+                    const fJson = await fileRes.json();
+                    if(fJson.ok){
+                        const voiceUrl = `${TG_GETFILE_URL.replace("/getFile","/file")}/${fJson.result.file_path}`;
+                        addMessage(voiceUrl, false, msg.date, "audio");
                     }
                 }
                 // 接收普通文件
