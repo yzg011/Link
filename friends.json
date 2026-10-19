@@ -112,5 +112,11 @@
     "url": "https://tchat.z2m.store",
     "avatar": "https://img.z2m.store/file/public/1778862620159_g.png",
     "description": "你的私密聊天室"
+  },
+  {
+    "name": "电报频道",
+    "url": "https://tp.z2m.store",
+    "avatar": "https://img.z2m.store/file/public/1778862620159_g.png",
+    "description": "同步电报频道的最新动态"
   }
 ]
